@@ -46,15 +46,11 @@ CREATE POLICY "Create household if authenticated"
   WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Members Policies
--- A user can view members of households they belong to
-CREATE POLICY "View members of same household" 
+-- A user can only view their own membership row, avoiding any recursive loops
+CREATE POLICY "View own membership" 
   ON public.members FOR SELECT 
   USING (
-    EXISTS (
-      SELECT 1 FROM public.members m 
-      WHERE m.household_id = public.members.household_id 
-      AND m.user_id = auth.uid()
-    )
+    user_id = auth.uid()
   );
 
 -- A user can insert themselves as a member (e.g., when creating a household or joining via invite code)
