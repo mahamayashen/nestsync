@@ -32,7 +32,7 @@ export async function createHousehold(formData: FormData) {
     .insert([{ 
       household_id: house.id, 
       user_id: user.id, 
-      role: "admin" 
+      role: "seasonal_admin" 
     }]);
 
   if (memberError) {

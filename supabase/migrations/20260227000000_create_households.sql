@@ -15,7 +15,7 @@ CREATE TABLE public.members (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   household_id UUID NOT NULL REFERENCES public.households(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'admin')),
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'seasonal_admin')),
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   -- A user can only be in a household once
   UNIQUE (household_id, user_id)
