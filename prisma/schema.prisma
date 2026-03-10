@@ -1,0 +1,353 @@
+// NestSync Database Schema — Data Plan v2.0
+// 13 models, 8 enums, 1 VIEW (via raw SQL migration)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pgcrypto]
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum MemberRole {
+  member
+  admin
+}
+
+enum AdminHistoryReason {
+  household_created
+  elected
+  auto_promoted
+  predecessor_left
+}
+
+enum Recurrence {
+  one_time
+  daily
+  weekly
+  monthly
+}
+
+enum ChoreStatus {
+  pending
+  completed
+  cancelled
+}
+
+enum SplitType {
+  equal
+  exact
+}
+
+enum ProposalType {
+  elect_admin
+  remove_member
+  custom
+}
+
+enum ProposalStatus {
+  active
+  passed
+  failed
+  expired
+}
+
+enum VoteChoice {
+  yes
+  no
+}
+
+// =============================================================================
+// MODELS
+// =============================================================================
+
+/// Linked to Supabase Auth. Profile data only — auth handled by Supabase.
+/// A trigger on auth.users auto-creates rows here on signup.
+model User {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String   @unique @db.VarChar(255)
+  displayName String   @map("display_name") @db.VarChar(100)
+  avatarUrl   String?  @map("avatar_url") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  householdMembers  HouseholdMember[]
+  createdHouseholds Household[]
+
+  @@map("users")
+}
+
+/// The core "nest" — a shared living space with settings.
+model Household {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String    @db.VarChar(100)
+  inviteCode               String    @unique @map("invite_code") @db.VarChar(20)
+  maxMembers               Int       @default(10) @map("max_members")
+  membersCanEditOwnChores  Boolean   @default(true) @map("members_can_edit_own_chores")
+  minVoteParticipation     Float     @default(0.5) @map("min_vote_participation")
+  defaultVoteDurationHours Int       @default(48) @map("default_vote_duration_hours")
+  timezone                 String    @default("America/New_York") @db.VarChar(50)
+  createdById              String    @map("created_by") @db.Uuid
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt                DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  members        HouseholdMember[]
+  choreTemplates ChoreTemplate[]
+  choreInstances ChoreInstance[]
+  expenses       Expense[]
+  settlements    Settlement[]
+  announcements  Announcement[]
+  proposals      Proposal[]
+  adminHistory   AdminHistory[]
+
+  @@map("households")
+}
+
+/// Join table: users ↔ households. Never hard-deleted — left_at marks departure.
+/// Central FK target for all member-referencing tables.
+/// Partial unique indexes enforced via raw SQL (Prisma can't express WHERE clauses).
+model HouseholdMember {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId String     @map("household_id") @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  role        MemberRole @default(member)
+  joinedAt    DateTime   @default(now()) @map("joined_at") @db.Timestamptz(6)
+  leftAt      DateTime?  @map("left_at") @db.Timestamptz(6)
+
+  household Household @relation(fields: [householdId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  // Reverse relations — this member is referenced across the schema
+  adminHistoryEntries     AdminHistory[]
+  assignedChoreTemplates  ChoreTemplate[]        @relation("TemplateAssignedTo")
+  createdChoreTemplates   ChoreTemplate[]        @relation("TemplateCreatedBy")
+  assignedChoreInstances  ChoreInstance[]        @relation("InstanceAssignedTo")
+  completedChoreInstances ChoreInstance[]        @relation("InstanceCompletedBy")
+  paidExpenses            Expense[]
+  expenseSplits           ExpenseSplit[]
+  settlementsFrom         Settlement[]           @relation("SettlementFrom")
+  settlementsTo           Settlement[]           @relation("SettlementTo")
+  announcements           Announcement[]
+  announcementReactions   AnnouncementReaction[]
+  createdProposals        Proposal[]             @relation("ProposalCreatedBy")
+  targetedProposals       Proposal[]             @relation("ProposalTargetMember")
+  votes                   Vote[]
+
+  @@index([householdId])
+  @@map("household_members")
+}
+
+/// Audit log of every admin transition (D13).
+model AdminHistory {
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId String             @map("household_id") @db.Uuid
+  memberId    String             @map("member_id") @db.Uuid
+  startedAt   DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt     DateTime?          @map("ended_at") @db.Timestamptz(6)
+  reason      AdminHistoryReason
+  proposalId  String?            @map("proposal_id") @db.Uuid
+
+  household Household       @relation(fields: [householdId], references: [id])
+  member    HouseholdMember @relation(fields: [memberId], references: [id])
+  proposal  Proposal?       @relation(fields: [proposalId], references: [id])
+
+  @@map("admin_history")
+}
+
+/// Reusable chore definition. Recurring chores generate instances from this template.
+model ChoreTemplate {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId  String     @map("household_id") @db.Uuid
+  title        String     @db.VarChar(200)
+  description  String?    @db.Text
+  points       Int        @default(1)
+  recurrence   Recurrence
+  assignedToId String     @map("assigned_to") @db.Uuid
+  createdById  String     @map("created_by") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  household  Household       @relation(fields: [householdId], references: [id])
+  assignedTo HouseholdMember @relation("TemplateAssignedTo", fields: [assignedToId], references: [id])
+  createdBy  HouseholdMember @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+  instances  ChoreInstance[]
+
+  @@index([householdId])
+  @@map("chore_templates")
+}
+
+/// Individual chore occurrence. Snapshots title/points from template at creation.
+/// assigned_to is NULLABLE — set to NULL when assignee leaves (D29).
+/// completed_by gets the points, not assigned_to (D23).
+model ChoreInstance {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId    String?     @map("template_id") @db.Uuid
+  householdId   String      @map("household_id") @db.Uuid
+  title         String      @db.VarChar(200)
+  points        Int
+  assignedToId  String?     @map("assigned_to") @db.Uuid
+  dueDate       DateTime    @map("due_date") @db.Date
+  status        ChoreStatus @default(pending)
+  completedAt   DateTime?   @map("completed_at") @db.Timestamptz(6)
+  completedById String?     @map("completed_by") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  template    ChoreTemplate?   @relation(fields: [templateId], references: [id])
+  household   Household        @relation(fields: [householdId], references: [id])
+  assignedTo  HouseholdMember? @relation("InstanceAssignedTo", fields: [assignedToId], references: [id])
+  completedBy HouseholdMember? @relation("InstanceCompletedBy", fields: [completedById], references: [id])
+
+  @@index([householdId, dueDate])
+  @@index([householdId, status])
+  @@index([assignedToId, status])
+  @@map("chore_instances")
+}
+
+/// Shared expense logged by a household member.
+/// Payer is NEVER in expense_splits (D20).
+model Expense {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId String    @map("household_id") @db.Uuid
+  title       String    @db.VarChar(200)
+  amount      Decimal   @db.Decimal(10, 2)
+  paidById    String    @map("paid_by") @db.Uuid
+  splitType   SplitType @default(equal) @map("split_type")
+  category    String?   @db.VarChar(50)
+  expenseDate DateTime  @map("expense_date") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  household Household       @relation(fields: [householdId], references: [id])
+  paidBy    HouseholdMember @relation(fields: [paidById], references: [id])
+  splits    ExpenseSplit[]
+
+  @@index([householdId])
+  @@map("expenses")
+}
+
+/// Per-member debt owed to the payer. Payer is NEVER in this table (D20).
+model ExpenseSplit {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expenseId String   @map("expense_id") @db.Uuid
+  memberId  String   @map("member_id") @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  expense Expense         @relation(fields: [expenseId], references: [id])
+  member  HouseholdMember @relation(fields: [memberId], references: [id])
+
+  @@unique([expenseId, memberId])
+  @@index([expenseId])
+  @@index([memberId])
+  @@map("expense_splits")
+}
+
+/// Freeform payment between members to reduce balances (D7).
+model Settlement {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId  String    @map("household_id") @db.Uuid
+  fromMemberId String    @map("from_member") @db.Uuid
+  toMemberId   String    @map("to_member") @db.Uuid
+  amount       Decimal   @db.Decimal(10, 2)
+  note         String?   @db.VarChar(200)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  household  Household       @relation(fields: [householdId], references: [id])
+  fromMember HouseholdMember @relation("SettlementFrom", fields: [fromMemberId], references: [id])
+  toMember   HouseholdMember @relation("SettlementTo", fields: [toMemberId], references: [id])
+
+  @@index([householdId, fromMemberId])
+  @@index([householdId, toMemberId])
+  @@map("settlements")
+}
+
+/// Shared household feed post. Supports pinning (admin-only) and reactions.
+model Announcement {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId String    @map("household_id") @db.Uuid
+  authorId    String    @map("author_id") @db.Uuid
+  content     String    @db.Text
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  household Household              @relation(fields: [householdId], references: [id])
+  author    HouseholdMember        @relation(fields: [authorId], references: [id])
+  reactions AnnouncementReaction[]
+
+  @@index([householdId])
+  @@map("announcements")
+}
+
+/// Emoji reactions on announcements (D32).
+model AnnouncementReaction {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  announcementId String   @map("announcement_id") @db.Uuid
+  memberId       String   @map("member_id") @db.Uuid
+  emoji          String   @db.VarChar(10)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  announcement Announcement    @relation(fields: [announcementId], references: [id])
+  member       HouseholdMember @relation(fields: [memberId], references: [id])
+
+  @@unique([announcementId, memberId, emoji])
+  @@index([announcementId])
+  @@map("announcement_reactions")
+}
+
+/// Governance proposal: admin elections, member removal, or custom motions.
+model Proposal {
+  id                        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  householdId               String         @map("household_id") @db.Uuid
+  type                      ProposalType
+  title                     String         @db.VarChar(200)
+  description               String?        @db.Text
+  targetMemberId            String?        @map("target_member_id") @db.Uuid
+  createdById               String         @map("created_by") @db.Uuid
+  status                    ProposalStatus @default(active)
+  eligibleVoterCount        Int            @map("eligible_voter_count")
+  minParticipationThreshold Float          @map("min_participation_threshold")
+  votingDeadline            DateTime       @map("voting_deadline") @db.Timestamptz(6)
+  resolvedAt                DateTime?      @map("resolved_at") @db.Timestamptz(6)
+  createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  household    Household        @relation(fields: [householdId], references: [id])
+  targetMember HouseholdMember? @relation("ProposalTargetMember", fields: [targetMemberId], references: [id])
+  createdBy    HouseholdMember  @relation("ProposalCreatedBy", fields: [createdById], references: [id])
+  votes        Vote[]
+  adminHistory AdminHistory[]
+
+  @@index([householdId, status])
+  @@map("proposals")
+}
+
+/// Individual vote on a proposal.
+model Vote {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proposalId String     @map("proposal_id") @db.Uuid
+  memberId   String     @map("member_id") @db.Uuid
+  vote       VoteChoice
+  votedAt    DateTime   @default(now()) @map("voted_at") @db.Timestamptz(6)
+
+  proposal Proposal        @relation(fields: [proposalId], references: [id])
+  member   HouseholdMember @relation(fields: [memberId], references: [id])
+
+  @@unique([proposalId, memberId])
+  @@index([proposalId])
+  @@map("votes")
+}
