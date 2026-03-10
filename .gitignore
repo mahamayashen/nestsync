@@ -20,9 +20,13 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 
-# Playwright
+# Testing
+/coverage/
 /test-results/
 /playwright-report/
+
+# Claude Code
+.claude/
 
 # Supabase
 supabase/.temp/
