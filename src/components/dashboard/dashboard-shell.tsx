@@ -49,6 +49,7 @@ export function DashboardShell({
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden p-1 rounded text-slate-400 hover:text-slate-600"
+              aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />
             </button>

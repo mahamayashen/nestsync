@@ -23,12 +23,12 @@ export function WeeklyStats({ householdId, initialStats }: WeeklyStatsProps) {
       const now = new Date();
       const dayOfWeek = now.getDay();
       const monday = new Date(now);
-      monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      const weekStart = monday.toISOString().split("T")[0];
+      monday.setHours(0, 0, 0, 0);
+      monday.setDate(monday.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
-      const weekEnd = sunday.toISOString().split("T")[0];
+      sunday.setHours(23, 59, 59, 999);
 
       const { data, error } = await supabase
         .from("chore_instances")
@@ -38,8 +38,8 @@ export function WeeklyStats({ householdId, initialStats }: WeeklyStatsProps) {
         .eq("household_id", householdId)
         .eq("status", "completed")
         .not("completed_by", "is", null)
-        .gte("completed_at", `${weekStart}T00:00:00`)
-        .lte("completed_at", `${weekEnd}T23:59:59`);
+        .gte("completed_at", monday.toISOString())
+        .lte("completed_at", sunday.toISOString());
 
       if (error || !data) return [];
 

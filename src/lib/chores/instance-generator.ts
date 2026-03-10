@@ -32,12 +32,22 @@ export function computeRecurrenceDates(
         current.setDate(current.getDate() + 7);
       }
       break;
-    case "monthly":
+    case "monthly": {
+      const targetDay = current.getDate();
       while (current <= end) {
         dates.push(new Date(current));
+        // Move to the same day next month, clamped to the last day of that month.
+        current.setDate(1);
         current.setMonth(current.getMonth() + 1);
+        const daysInMonth = new Date(
+          current.getFullYear(),
+          current.getMonth() + 1,
+          0
+        ).getDate();
+        current.setDate(Math.min(targetDay, daysInMonth));
       }
       break;
+    }
   }
 
   return dates;
@@ -47,5 +57,8 @@ export function computeRecurrenceDates(
  * Format a Date as YYYY-MM-DD string for the due_date column.
  */
 export function formatDateForDB(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

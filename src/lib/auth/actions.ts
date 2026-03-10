@@ -288,7 +288,10 @@ async function joinHouseholdByCode(code: string): Promise<ActionResult> {
 // ---- SIGN OUT ----
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error("Error signing out:", error);
+  }
   redirect("/login");
 }
 

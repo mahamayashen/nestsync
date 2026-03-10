@@ -5,22 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
 import { ChoreCard } from "./chore-card";
 import { ClipboardList } from "lucide-react";
+import type { ChoreInstanceRow } from "@/lib/chores/queries";
 
 type Filter = "mine" | "all" | "unassigned";
 
 interface ChoreBoardProps {
-  initialInstances: Array<{
-    id: string;
-    title: string;
-    points: number;
-    due_date: string;
-    assigned_to: string | null;
-    status: string;
-    assigned_member: {
-      id: string;
-      users: { display_name: string };
-    } | null;
-  }>;
+  initialInstances: ChoreInstanceRow[];
   currentMemberId: string;
   householdId: string;
 }
