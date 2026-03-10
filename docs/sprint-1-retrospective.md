@@ -19,7 +19,7 @@
 | RLS policy hardening | ✅ Delivered | Fixed cross-household data leaks, added row-level security for all tables |
 | CI/CD pipeline | ✅ Delivered | GitHub Actions with lint, typecheck, tests, build, E2E, security audit |
 | Documentation | ✅ Delivered | Testing & CI/CD guide, sprint retrospective, data schema docs |
-| Expenses feature | ⏳ Deferred | Removed from Sprint 1 scope to focus on core features |
+| Expenses feature | ❌ Removed | Dropped from app scope entirely due to workload constraints |
 
 **Sprint 1 delivers a working MVP:** A user can sign up, create or join a household, invite roommates, create chore templates (one-time or recurring), see assigned chores on a board, complete chores, and manage templates — all with role-based permissions (admin vs member) and a responsive dashboard UI.
 
