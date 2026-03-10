@@ -285,6 +285,16 @@ async function joinHouseholdByCode(code: string): Promise<ActionResult> {
   return {};
 }
 
+// ---- SIGN OUT ----
+export async function signOut(): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    console.error("Error signing out:", error);
+  }
+  redirect("/login");
+}
+
 // ---- Invite code generator (8-char, no confusing chars) ----
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
