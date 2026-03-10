@@ -149,8 +149,21 @@ export async function deleteChoreTemplate(
 
   if (!household) return { error: "Household not found" };
 
-  if (!household.members_can_edit_own_chores && membership.role !== "admin") {
-    return { error: "Only the admin can delete chore templates" };
+  if (membership.role !== "admin") {
+    if (!household.members_can_edit_own_chores) {
+      return { error: "Only the admin can delete chore templates" };
+    }
+    // When members_can_edit_own_chores is enabled, members can only delete their own templates
+    const { data: template } = await supabase
+      .from("chore_templates")
+      .select("created_by")
+      .eq("id", parsed.data.templateId)
+      .eq("household_id", membership.householdId)
+      .single();
+
+    if (!template || template.created_by !== membership.memberId) {
+      return { error: "You can only delete templates you created" };
+    }
   }
 
   // Soft delete (D4: pending instances survive)

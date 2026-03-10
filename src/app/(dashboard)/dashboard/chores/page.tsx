@@ -40,7 +40,7 @@ export default async function ChoresPage() {
       </div>
 
       <ChoreBoard
-        initialInstances={instances as never[]}
+        initialInstances={instances}
         currentMemberId={membership.memberId}
         householdId={membership.householdId}
       />

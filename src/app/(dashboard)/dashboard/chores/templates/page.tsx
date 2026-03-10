@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/lib/household/queries";
+import { createClient } from "@/lib/supabase/server";
 import { getChoreTemplates } from "@/lib/chores/queries";
 import { TemplateList } from "@/components/chores/template-list";
 import { Plus } from "lucide-react";
@@ -9,7 +10,19 @@ export default async function ChoreTemplatesPage() {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/login");
 
-  const templates = await getChoreTemplates(membership.householdId);
+  const supabase = await createClient();
+
+  const [templates, householdResult] = await Promise.all([
+    getChoreTemplates(membership.householdId),
+    supabase
+      .from("households")
+      .select("members_can_edit_own_chores")
+      .eq("id", membership.householdId)
+      .single(),
+  ]);
+
+  const membersCanEditOwnChores =
+    householdResult.data?.members_can_edit_own_chores ?? false;
 
   return (
     <div className="space-y-6">
@@ -40,9 +53,10 @@ export default async function ChoreTemplatesPage() {
       </div>
 
       <TemplateList
-        initialTemplates={templates as never[]}
+        initialTemplates={templates}
         currentMemberId={membership.memberId}
         memberRole={membership.role}
+        membersCanEditOwnChores={membersCanEditOwnChores}
         householdId={membership.householdId}
       />
     </div>

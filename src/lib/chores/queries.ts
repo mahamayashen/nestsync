@@ -1,5 +1,26 @@
 import { createClient } from "@/lib/supabase/server";
 
+export type ChoreInstanceRow = {
+  id: string;
+  title: string;
+  points: number;
+  due_date: string;
+  assigned_to: string | null;
+  status: string;
+  assigned_member: { id: string; users: { display_name: string } } | null;
+  completed_member?: { id: string; users: { display_name: string } } | null;
+};
+
+export type ChoreTemplateRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  points: number;
+  recurrence: string;
+  assigned_member: { id: string; users: { display_name: string } } | null;
+  creator: { id: string; users: { display_name: string } } | null;
+};
+
 export async function getChoreInstances(
   householdId: string,
   filters?: {
@@ -8,7 +29,7 @@ export async function getChoreInstances(
     dateFrom?: string;
     dateTo?: string;
   }
-) {
+): Promise<ChoreInstanceRow[]> {
   const supabase = await createClient();
 
   let query = supabase
@@ -43,10 +64,10 @@ export async function getChoreInstances(
 
   const { data, error } = await query;
   if (error) return [];
-  return data;
+  return data as unknown as ChoreInstanceRow[];
 }
 
-export async function getChoreTemplates(householdId: string) {
+export async function getChoreTemplates(householdId: string): Promise<ChoreTemplateRow[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -69,22 +90,22 @@ export async function getChoreTemplates(householdId: string) {
     .order("created_at", { ascending: false });
 
   if (error) return [];
-  return data;
+  return data as unknown as ChoreTemplateRow[];
 }
 
 export async function getWeeklyChoreStats(householdId: string) {
   const supabase = await createClient();
 
-  // Get the start of the current week (Monday)
+  // Get the start of the current week (Monday) using local date boundaries
   const now = new Date();
   const dayOfWeek = now.getDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-  const weekStart = monday.toISOString().split("T")[0];
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
-  const weekEnd = sunday.toISOString().split("T")[0];
+  sunday.setHours(23, 59, 59, 999);
 
   const { data, error } = await supabase
     .from("chore_instances")
@@ -101,8 +122,8 @@ export async function getWeeklyChoreStats(householdId: string) {
     .eq("household_id", householdId)
     .eq("status", "completed")
     .not("completed_by", "is", null)
-    .gte("completed_at", `${weekStart}T00:00:00`)
-    .lte("completed_at", `${weekEnd}T23:59:59`);
+    .gte("completed_at", monday.toISOString())
+    .lte("completed_at", sunday.toISOString());
 
   if (error || !data) return [];
 

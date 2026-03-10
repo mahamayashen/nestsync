@@ -97,10 +97,9 @@ export function CreateChoreForm({ members }: CreateChoreFormProps) {
         <select
           id="chore-assignee"
           name="assignedTo"
-          required
+          defaultValue={members[0]?.id ?? ""}
           className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white"
         >
-          <option value="">Select a member</option>
           {members.map((member) => (
             <option key={member.id} value={member.id}>
               {member.users.display_name}

@@ -5,7 +5,7 @@ export type HouseholdMemberWithUser = {
   user_id: string;
   role: string;
   joined_at: string;
-  users: { display_name: string; avatar_url: string | null; email: string };
+  users: { display_name: string; avatar_url: string | null };
 };
 
 /**
@@ -19,7 +19,7 @@ export async function getHouseholdMembers(
   const { data, error } = await supabase
     .from("household_members")
     .select(
-      "id, user_id, role, joined_at, users!inner(display_name, avatar_url, email)"
+      "id, user_id, role, joined_at, users!inner(display_name, avatar_url)"
     )
     .eq("household_id", householdId)
     .is("left_at", null)

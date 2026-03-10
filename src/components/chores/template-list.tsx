@@ -4,25 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
 import { TemplateCard } from "./template-card";
 import { ClipboardList } from "lucide-react";
+import type { ChoreTemplateRow } from "@/lib/chores/queries";
 
 interface TemplateListProps {
-  initialTemplates: Array<{
-    id: string;
-    title: string;
-    description: string | null;
-    points: number;
-    recurrence: string;
-    assigned_member: {
-      id: string;
-      users: { display_name: string };
-    } | null;
-    creator: {
-      id: string;
-      users: { display_name: string };
-    } | null;
-  }>;
+  initialTemplates: ChoreTemplateRow[];
   currentMemberId: string;
   memberRole: string;
+  membersCanEditOwnChores: boolean;
   householdId: string;
 }
 
@@ -30,6 +18,7 @@ export function TemplateList({
   initialTemplates,
   currentMemberId,
   memberRole,
+  membersCanEditOwnChores,
   householdId,
 }: TemplateListProps) {
   const supabase = useSupabase();
@@ -70,16 +59,19 @@ export function TemplateList({
     );
   }
 
-  // D3 permission: admin can always delete, members can delete if setting allows
-  const canDelete = memberRole === "admin"; // Simplified — full D3 check is in server action
-
+  // Align with server-side D3 permission: admin can always delete;
+  // members can only delete their own templates when the household setting allows it.
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {templates.map((template) => (
         <TemplateCard
           key={template.id}
           template={template}
-          canDelete={canDelete || template.creator?.id === currentMemberId}
+          canDelete={
+            memberRole === "admin" ||
+            (membersCanEditOwnChores &&
+              template.creator?.id === currentMemberId)
+          }
           householdId={householdId}
         />
       ))}

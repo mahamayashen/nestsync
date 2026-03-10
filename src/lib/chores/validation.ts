@@ -13,7 +13,7 @@ export const createChoreTemplateSchema = z.object({
     .min(1, "Points must be at least 1")
     .max(100, "Points must be at most 100"),
   recurrence: z.enum(["one_time", "daily", "weekly", "monthly"]),
-  assignedTo: z.string().uuid("Invalid assignee"),
+  assignedTo: z.string().uuid("Please select a member to assign this chore to"),
 });
 
 export const completeChoreSchema = z.object({

@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/lib/household/queries";
 import { createClient } from "@/lib/supabase/server";
-import { getChoreInstances } from "@/lib/chores/queries";
-import { getWeeklyChoreStats } from "@/lib/chores/queries";
+import { getChoreInstances, getWeeklyChoreStats } from "@/lib/chores/queries";
 import { DashboardHome } from "@/components/dashboard/dashboard-home";
 
 export default async function DashboardPage() {
@@ -17,7 +16,8 @@ export default async function DashboardPage() {
     .eq("id", membership.userId)
     .single();
 
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   // Fetch data in parallel
   const [allPending, todayInstances, weeklyStats] = await Promise.all([
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       householdId={membership.householdId}
       myPendingCount={myPendingCount}
       totalPendingCount={allPending.length}
-      todayChores={todayInstances as never[]}
+      todayChores={todayInstances}
       weeklyStats={weeklyStats}
     />
   );

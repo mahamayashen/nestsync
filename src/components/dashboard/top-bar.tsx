@@ -20,9 +20,13 @@ export function TopBar({
   const [copied, setCopied] = useState(false);
 
   const copyInviteCode = async () => {
-    await navigator.clipboard.writeText(inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(inviteCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable or permission denied — silently ignore
+    }
   };
 
   return (
@@ -45,6 +49,7 @@ export function TopBar({
           onClick={copyInviteCode}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
           title={`Invite code: ${inviteCode}`}
+          aria-label={copied ? "Invite code copied" : "Copy invite code"}
         >
           {copied ? (
             <Check className="w-4 h-4 text-green-600" />
@@ -65,6 +70,7 @@ export function TopBar({
             type="submit"
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             title="Sign out"
+            aria-label="Sign out"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign out</span>
