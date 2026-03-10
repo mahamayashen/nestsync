@@ -66,6 +66,7 @@ describe("TemplateList", () => {
         initialTemplates={mockTemplates}
         currentMemberId="member-1"
         memberRole="admin"
+        membersCanEditOwnChores={true}
         householdId="h-001"
       />
     );
@@ -79,6 +80,7 @@ describe("TemplateList", () => {
         initialTemplates={[]}
         currentMemberId="member-1"
         memberRole="admin"
+        membersCanEditOwnChores={true}
         householdId="h-001"
       />
     );
@@ -91,6 +93,7 @@ describe("TemplateList", () => {
         initialTemplates={mockTemplates}
         currentMemberId="member-1"
         memberRole="admin"
+        membersCanEditOwnChores={false}
         householdId="h-001"
       />
     );
@@ -98,12 +101,13 @@ describe("TemplateList", () => {
     expect(deletableMarkers).toHaveLength(2);
   });
 
-  it("non-admin member can only delete their own templates", () => {
+  it("non-admin member can only delete own templates when setting enabled", () => {
     renderWithProviders(
       <TemplateList
         initialTemplates={mockTemplates}
         currentMemberId="member-1"
         memberRole="member"
+        membersCanEditOwnChores={true}
         householdId="h-001"
       />
     );
@@ -112,12 +116,26 @@ describe("TemplateList", () => {
     expect(deletableMarkers).toHaveLength(1);
   });
 
+  it("non-admin member cannot delete any when setting disabled", () => {
+    renderWithProviders(
+      <TemplateList
+        initialTemplates={mockTemplates}
+        currentMemberId="member-1"
+        memberRole="member"
+        membersCanEditOwnChores={false}
+        householdId="h-001"
+      />
+    );
+    expect(screen.queryByText("deletable")).not.toBeInTheDocument();
+  });
+
   it("renders the correct number of template cards", () => {
     renderWithProviders(
       <TemplateList
         initialTemplates={mockTemplates}
         currentMemberId="member-1"
         memberRole="admin"
+        membersCanEditOwnChores={true}
         householdId="h-001"
       />
     );

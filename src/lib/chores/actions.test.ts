@@ -286,7 +286,7 @@ describe("deleteChoreTemplate", () => {
     expect(result).toEqual({ success: true });
   });
 
-  it("returns success when member can edit own chores", async () => {
+  it("returns success when member deletes own template", async () => {
     mockGetCurrentMembership.mockResolvedValue(
       mockMembership({ role: "member" })
     );
@@ -295,11 +295,20 @@ describe("deleteChoreTemplate", () => {
     mockSupa.from.mockImplementation(() => {
       callCount++;
       if (callCount === 1) {
+        // household settings query
         return createChain({
           data: { members_can_edit_own_chores: true },
           error: null,
         });
       }
+      if (callCount === 2) {
+        // template ownership query — created_by matches memberId
+        return createChain({
+          data: { created_by: "member-001" },
+          error: null,
+        });
+      }
+      // update query
       return createChain({ data: null, error: null });
     });
 

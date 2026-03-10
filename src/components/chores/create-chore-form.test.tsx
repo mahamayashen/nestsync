@@ -8,8 +8,8 @@ vi.mock("@/lib/chores/actions", () => ({
 }));
 
 const mockMembers = [
-  { id: "member-1", user_id: "u1", household_id: "h1", role: "admin", joined_at: "", users: { display_name: "Alice", avatar_url: null, email: "alice@example.com" } },
-  { id: "member-2", user_id: "u2", household_id: "h1", role: "member", joined_at: "", users: { display_name: "Bob", avatar_url: null, email: "bob@example.com" } },
+  { id: "member-1", user_id: "u1", household_id: "h1", role: "admin", joined_at: "", users: { display_name: "Alice", avatar_url: null } },
+  { id: "member-2", user_id: "u2", household_id: "h1", role: "member", joined_at: "", users: { display_name: "Bob", avatar_url: null } },
 ];
 
 describe("CreateChoreForm", () => {
@@ -48,9 +48,10 @@ describe("CreateChoreForm", () => {
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
 
-  it("renders default 'Select a member' option", () => {
+  it("defaults assignee to first member", () => {
     render(<CreateChoreForm members={mockMembers} />);
-    expect(screen.getByText("Select a member")).toBeInTheDocument();
+    const assigneeSelect = screen.getByLabelText(/assigned to/i) as HTMLSelectElement;
+    expect(assigneeSelect.value).toBe("member-1");
   });
 
   it("renders submit button", () => {
