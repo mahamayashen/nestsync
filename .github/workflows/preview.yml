@@ -1,0 +1,46 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  preview:
+    name: PR Preview
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+
+      # Run lint + typecheck
+      - run: npm run lint
+      - run: npx tsc --noEmit
+
+      # Run tests with coverage
+      - run: npm run test:coverage
+
+      # Post coverage summary as PR comment
+      - name: Coverage Summary
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
+
+      # Upload coverage artifact
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-coverage
+          path: coverage/
+          retention-days: 7
