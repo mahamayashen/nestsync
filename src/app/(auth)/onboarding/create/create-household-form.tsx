@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { createHousehold } from "@/lib/auth/actions";
 import { FormField } from "@/components/ui/form-field";
@@ -25,12 +25,16 @@ const COMMON_TIMEZONES = [
   "Pacific/Auckland",
 ];
 
-export function CreateHouseholdForm() {
-  const [detectedTimezone, setDetectedTimezone] = useState<string>("");
+const subscribe = () => () => {};
+const getTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+const getServerTimezone = () => "";
 
-  useEffect(() => {
-    setDetectedTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  }, []);
+export function CreateHouseholdForm() {
+  const detectedTimezone = useSyncExternalStore(
+    subscribe,
+    getTimezone,
+    getServerTimezone
+  );
 
   const [state, formAction] = useActionState(
     async (_prev: { error?: string }, formData: FormData) => {
