@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+
+# env files
+.env
+.env.local
+.env.*.local
+
+# next.js
+/.next/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+
+# typescript
+*.tsbuildinfo
+
+# Playwright
+/test-results/
+/playwright-report/
+
+# Supabase
+supabase/.temp/
