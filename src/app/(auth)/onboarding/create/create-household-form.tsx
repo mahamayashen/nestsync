@@ -47,7 +47,7 @@ export function CreateHouseholdForm() {
     <form action={formAction} className="space-y-4" noValidate>
       {state.error && (
         <div
-          className="p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+          className="p-3 rounded-lg bg-error-light text-error-text text-sm"
           role="alert"
         >
           {state.error}
@@ -66,7 +66,7 @@ export function CreateHouseholdForm() {
       <div className="space-y-1.5">
         <label
           htmlFor="household-timezone"
-          className="block text-sm font-medium text-slate-700"
+          className="block text-sm font-medium text-text-primary"
         >
           Timezone
         </label>
@@ -74,7 +74,7 @@ export function CreateHouseholdForm() {
           id="household-timezone"
           name="timezone"
           defaultValue={detectedTimezone}
-          className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow bg-white"
+          className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow bg-surface"
         >
           {COMMON_TIMEZONES.map((tz) => (
             <option key={tz} value={tz}>
@@ -92,10 +92,10 @@ export function CreateHouseholdForm() {
 
       <SubmitButton>Create household</SubmitButton>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-text-secondary">
         <Link
           href="/onboarding"
-          className="text-indigo-600 font-medium hover:text-indigo-700"
+          className="text-primary font-medium hover:text-primary-hover"
         >
           Back to options
         </Link>

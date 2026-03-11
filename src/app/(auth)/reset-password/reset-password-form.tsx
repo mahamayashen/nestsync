@@ -17,7 +17,7 @@ export function ResetPasswordForm() {
     <form action={formAction} className="space-y-4" noValidate>
       {state.error && (
         <div
-          className="p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+          className="p-3 rounded-lg bg-error-light text-error-text text-sm"
           role="alert"
         >
           {state.error}

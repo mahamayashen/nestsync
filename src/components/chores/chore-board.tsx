@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
 import { ChoreCard } from "./chore-card";
-import { ClipboardList } from "lucide-react";
+import { ClipboardText } from "@phosphor-icons/react";
 import type { ChoreInstanceRow } from "@/lib/chores/queries";
 
 type Filter = "mine" | "all" | "unassigned";
@@ -65,15 +65,15 @@ export function ChoreBoard({
   return (
     <div className="space-y-4">
       {/* Filter tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 bg-surface-secondary p-1 rounded-lg w-fit">
         {filterTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               filter === tab.key
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-surface text-text-primary shadow-sm"
+                : "text-text-secondary hover:text-text-primary"
             }`}
           >
             {tab.label}
@@ -84,8 +84,8 @@ export function ChoreBoard({
       {/* Chore list */}
       {!instances || instances.length === 0 ? (
         <div className="text-center py-12">
-          <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">
+          <ClipboardText className="w-12 h-12 text-text-muted mx-auto mb-3" />
+          <p className="text-sm text-text-secondary">
             {filter === "mine"
               ? "No chores assigned to you"
               : filter === "unassigned"

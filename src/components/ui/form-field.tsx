@@ -25,7 +25,7 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+      <label htmlFor={id} className="block text-sm font-medium text-text-primary">
         {label}
       </label>
       <input
@@ -38,10 +38,10 @@ export function FormField({
         autoComplete={autoComplete}
         aria-describedby={error ? `${id}-error` : undefined}
         aria-invalid={error ? true : undefined}
-        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+        className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
       />
       {error && (
-        <p id={`${id}-error`} className="text-sm text-red-600" role="alert">
+        <p id={`${id}-error`} className="text-sm text-error" role="alert">
           {error}
         </p>
       )}

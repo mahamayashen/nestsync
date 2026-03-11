@@ -18,7 +18,7 @@ export function ForgotPasswordForm() {
     <div className="space-y-6">
       {state.success ? (
         <div
-          className="p-4 rounded-lg bg-green-50 text-green-700 text-sm space-y-2"
+          className="p-4 rounded-lg bg-success-light text-success-text text-sm space-y-2"
           role="status"
         >
           <p className="font-medium">Check your email</p>
@@ -31,7 +31,7 @@ export function ForgotPasswordForm() {
         <form action={formAction} className="space-y-4" noValidate>
           {state.error && (
             <div
-              className="p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+              className="p-3 rounded-lg bg-error-light text-error-text text-sm"
               role="alert"
             >
               {state.error}
@@ -52,10 +52,10 @@ export function ForgotPasswordForm() {
         </form>
       )}
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-text-secondary">
         <Link
           href="/login"
-          className="text-indigo-600 font-medium hover:text-indigo-700"
+          className="text-primary font-medium hover:text-primary-hover"
         >
           Back to sign in
         </Link>

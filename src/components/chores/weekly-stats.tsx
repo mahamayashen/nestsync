@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
-import { Trophy, Star } from "lucide-react";
+import { Trophy, Star } from "@phosphor-icons/react";
 
 interface WeeklyStatsProps {
   householdId: string;
@@ -82,20 +82,20 @@ export function WeeklyStats({ householdId, initialStats }: WeeklyStatsProps) {
 
   if (!stats || stats.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
-          <Trophy className="w-4 h-4 text-amber-500" />
+      <div className="bg-surface rounded-xl border border-border-light p-5">
+        <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2 mb-3">
+          <Trophy className="w-4 h-4 text-accent" />
           This Week&apos;s Points
         </h3>
-        <p className="text-sm text-slate-400">No chores completed this week</p>
+        <p className="text-sm text-text-muted">No chores completed this week</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2 mb-3">
-        <Trophy className="w-4 h-4 text-amber-500" />
+    <div className="bg-surface rounded-xl border border-border-light p-5">
+      <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2 mb-3">
+        <Trophy className="w-4 h-4 text-accent" />
         This Week&apos;s Points
       </h3>
       <div className="space-y-2">
@@ -108,22 +108,22 @@ export function WeeklyStats({ householdId, initialStats }: WeeklyStatsProps) {
               <span
                 className={`text-xs font-bold w-5 text-center ${
                   index === 0
-                    ? "text-amber-500"
+                    ? "text-accent"
                     : index === 1
-                      ? "text-slate-400"
-                      : "text-amber-700"
+                      ? "text-text-muted"
+                      : "text-highlight"
                 }`}
               >
                 {index + 1}
               </span>
-              <span className="text-sm text-slate-700">
+              <span className="text-sm text-text-primary">
                 {stat.displayName}
               </span>
             </div>
             <div className="flex items-center gap-1 text-sm">
-              <Star className="w-3.5 h-3.5 text-amber-500" />
-              <span className="font-medium text-slate-900">{stat.points}</span>
-              <span className="text-slate-400">
+              <Star className="w-3.5 h-3.5 text-accent" />
+              <span className="font-medium text-text-primary">{stat.points}</span>
+              <span className="text-text-muted">
                 ({stat.count} {stat.count === 1 ? "chore" : "chores"})
               </span>
             </div>

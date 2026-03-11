@@ -25,7 +25,7 @@ export function SignupForm({ inviteCode }: { inviteCode?: string }) {
     <div className="space-y-6">
       {code && (
         <div
-          className="p-3 rounded-lg bg-indigo-50 text-indigo-700 text-sm"
+          className="p-3 rounded-lg bg-primary-light text-primary-hover text-sm"
           role="status"
         >
           You&apos;ve been invited to a household! Create an account to join.
@@ -38,7 +38,7 @@ export function SignupForm({ inviteCode }: { inviteCode?: string }) {
       <form action={formAction} className="space-y-4" noValidate>
         {state.error && (
           <div
-            className="p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+            className="p-3 rounded-lg bg-error-light text-error-text text-sm"
             role="alert"
           >
             {state.error}
@@ -76,11 +76,11 @@ export function SignupForm({ inviteCode }: { inviteCode?: string }) {
         <SubmitButton>Create account</SubmitButton>
       </form>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-text-secondary">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="text-indigo-600 font-medium hover:text-indigo-700"
+          className="text-primary font-medium hover:text-primary-hover"
         >
           Sign in
         </Link>

@@ -164,6 +164,6 @@ describe("ChoreBoard", () => {
       />
     );
     const myChoresBtn = screen.getByText("My Chores");
-    expect(myChoresBtn.className).toContain("bg-white");
+    expect(myChoresBtn.className).toContain("bg-surface");
   });
 });

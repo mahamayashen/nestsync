@@ -2,30 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Icon } from "@phosphor-icons/react";
 import {
-  Home,
-  ClipboardList,
-  DollarSign,
+  House,
+  ClipboardText,
+  CurrencyDollar,
   Megaphone,
-  Vote,
-} from "lucide-react";
+  Scales,
+} from "@phosphor-icons/react";
 
-const navItems = [
-  { href: "/dashboard", label: "Home", icon: Home, enabled: true },
+const navItems: { href: string; label: string; icon: Icon; enabled: boolean }[] = [
+  { href: "/dashboard", label: "Home", icon: House, enabled: true },
   {
     href: "/dashboard/chores",
     label: "Chores",
-    icon: ClipboardList,
+    icon: ClipboardText,
     enabled: true,
   },
   {
     href: "/dashboard/expenses",
     label: "Expenses",
-    icon: DollarSign,
+    icon: CurrencyDollar,
     enabled: false,
   },
   { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: false },
-  { href: "/dashboard/votes", label: "Votes", icon: Vote, enabled: false },
+  { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: false },
 ];
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -43,12 +44,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           return (
             <div
               key={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 cursor-not-allowed"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-text-muted cursor-not-allowed"
               title="Coming soon"
             >
               <item.icon className="w-5 h-5" />
               <span className="text-sm font-medium">{item.label}</span>
-              <span className="ml-auto text-xs bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-xs bg-surface-secondary text-text-muted px-1.5 py-0.5 rounded">
                 Soon
               </span>
             </div>
@@ -62,8 +63,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
               isActive
-                ? "bg-indigo-50 text-indigo-700"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                ? "bg-primary-light text-primary-hover"
+                : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
             }`}
           >
             <item.icon className="w-5 h-5" />

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteChoreTemplate } from "@/lib/chores/actions";
-import { Repeat, Trash2, Star, Loader2, User } from "lucide-react";
+import { ArrowsClockwise, Trash, Star, SpinnerGap, User } from "@phosphor-icons/react";
 
 interface TemplateCardProps {
   template: {
@@ -54,14 +54,14 @@ export function TemplateCard({
   });
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+    <div className="bg-surface rounded-xl border border-border-light p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900 truncate">
+          <h3 className="text-sm font-semibold text-text-primary truncate">
             {template.title}
           </h3>
           {template.description && (
-            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+            <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">
               {template.description}
             </p>
           )}
@@ -70,30 +70,30 @@ export function TemplateCard({
           <button
             onClick={() => deleteMutation.mutate()}
             disabled={deleteMutation.isPending}
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+            className="p-1.5 text-text-muted hover:text-error hover:bg-error-light rounded-lg transition-colors flex-shrink-0"
             title="Delete template"
           >
             {deleteMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <SpinnerGap className="w-4 h-4 animate-spin" />
             ) : (
-              <Trash2 className="w-4 h-4" />
+              <Trash className="w-4 h-4" />
             )}
           </button>
         )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md">
-          <Repeat className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1 text-xs bg-primary-light text-primary px-2 py-1 rounded-md">
+          <ArrowsClockwise className="w-3 h-3" />
           {recurrenceLabels[template.recurrence] ?? template.recurrence}
         </span>
-        <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded-md">
+        <span className="inline-flex items-center gap-1 text-xs bg-accent-light text-accent px-2 py-1 rounded-md">
           <Star className="w-3 h-3" />
           {template.points} {template.points === 1 ? "point" : "points"}
         </span>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-slate-500">
+      <div className="flex items-center gap-3 text-xs text-text-secondary">
         <span className="flex items-center gap-1">
           <User className="w-3.5 h-3.5" />
           {template.assigned_member?.users?.display_name ?? "Unassigned"}

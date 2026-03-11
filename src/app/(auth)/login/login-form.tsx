@@ -25,7 +25,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       <form action={formAction} className="space-y-4" noValidate>
         {state.error && (
           <div
-            className="p-3 rounded-lg bg-red-50 text-red-700 text-sm"
+            className="p-3 rounded-lg bg-error-light text-error-text text-sm"
             role="alert"
           >
             {state.error}
@@ -54,7 +54,7 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         <div className="flex justify-end">
           <Link
             href="/forgot-password"
-            className="text-sm text-indigo-600 hover:text-indigo-700"
+            className="text-sm text-primary hover:text-primary-hover"
           >
             Forgot password?
           </Link>
@@ -63,11 +63,11 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
         <SubmitButton>Sign in</SubmitButton>
       </form>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-text-secondary">
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="text-indigo-600 font-medium hover:text-indigo-700"
+          className="text-primary font-medium hover:text-primary-hover"
         >
           Sign up
         </Link>

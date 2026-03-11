@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
 import { TemplateCard } from "./template-card";
-import { ClipboardList } from "lucide-react";
+import { ClipboardText } from "@phosphor-icons/react";
 import type { ChoreTemplateRow } from "@/lib/chores/queries";
 
 interface TemplateListProps {
@@ -53,8 +53,8 @@ export function TemplateList({
   if (!templates || templates.length === 0) {
     return (
       <div className="text-center py-12">
-        <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-sm text-slate-500">No chore templates yet</p>
+        <ClipboardText className="w-12 h-12 text-text-muted mx-auto mb-3" />
+        <p className="text-sm text-text-secondary">No chore templates yet</p>
       </div>
     );
   }
