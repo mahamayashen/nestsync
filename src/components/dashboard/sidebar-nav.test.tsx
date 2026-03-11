@@ -58,8 +58,8 @@ describe("SidebarNav", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     const soonBadges = screen.getAllByText("Soon");
-    // Expenses, Feed, Votes = 3 disabled items
-    expect(soonBadges).toHaveLength(3);
+    // Expenses, Votes = 2 disabled items (Feed is now enabled)
+    expect(soonBadges).toHaveLength(2);
   });
 
   it("highlights Home when on /dashboard", () => {
