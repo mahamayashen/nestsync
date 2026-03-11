@@ -25,7 +25,7 @@ const navItems: { href: string; label: string; icon: Icon; enabled: boolean }[] 
     icon: CurrencyDollar,
     enabled: false,
   },
-  { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: false },
+  { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: true },
   { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: false },
 ];
 
