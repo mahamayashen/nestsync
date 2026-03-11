@@ -12,10 +12,10 @@ export default async function NewChorePage() {
   return (
     <div className="max-w-lg mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-2xl font-bold font-heading text-text-primary">
           Create a New Chore
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="text-sm text-text-secondary mt-1">
           Set up a recurring or one-time chore for your household
         </p>
       </div>

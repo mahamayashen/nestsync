@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Star, User } from "lucide-react";
+import { CalendarBlank, Star, User } from "@phosphor-icons/react";
 import { CompleteChoreButton } from "./complete-chore-button";
 
 interface ChoreCardProps {
@@ -31,28 +31,28 @@ export function ChoreCard({ instance, householdId }: ChoreCardProps) {
   );
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between gap-4 hover:shadow-sm transition-shadow">
+    <div className="bg-surface rounded-xl border border-border-light p-4 flex items-center justify-between gap-4 hover:shadow-sm transition-shadow">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-sm font-medium text-slate-900 truncate">
+          <h3 className="text-sm font-medium text-text-primary truncate">
             {instance.title}
           </h3>
-          <span className="inline-flex items-center gap-0.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded flex-shrink-0">
+          <span className="inline-flex items-center gap-0.5 text-xs text-accent bg-accent-light px-1.5 py-0.5 rounded flex-shrink-0">
             <Star className="w-3 h-3" />
             {instance.points}
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3 text-xs text-text-secondary">
           <span
             className={`flex items-center gap-1 ${
               isOverdue
-                ? "text-red-600 font-medium"
+                ? "text-error font-medium"
                 : isToday
-                  ? "text-indigo-600 font-medium"
+                  ? "text-primary font-medium"
                   : ""
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
+            <CalendarBlank className="w-3.5 h-3.5" />
             {isOverdue ? "Overdue · " : isToday ? "Today · " : ""}
             {formattedDate}
           </span>

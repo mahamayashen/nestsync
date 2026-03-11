@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check, LogOut, Menu } from "lucide-react";
+import { Copy, Check, SignOut, List } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/actions";
 
 interface TopBarProps {
@@ -30,16 +30,16 @@ export function TopBar({
   };
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 border-b border-border-light bg-surface flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+          className="lg:hidden p-2 rounded-lg text-text-secondary hover:bg-surface-secondary"
           aria-label="Toggle sidebar"
         >
-          <Menu className="w-5 h-5" />
+          <List className="w-5 h-5" />
         </button>
-        <h2 className="text-sm font-semibold text-slate-900 hidden sm:block">
+        <h2 className="text-sm font-semibold text-text-primary hidden sm:block">
           {householdName}
         </h2>
       </div>
@@ -47,12 +47,12 @@ export function TopBar({
       <div className="flex items-center gap-2">
         <button
           onClick={copyInviteCode}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-lg transition-colors"
           title={`Invite code: ${inviteCode}`}
           aria-label={copied ? "Invite code copied" : "Copy invite code"}
         >
           {copied ? (
-            <Check className="w-4 h-4 text-green-600" />
+            <Check className="w-4 h-4 text-success" />
           ) : (
             <Copy className="w-4 h-4" />
           )}
@@ -61,18 +61,18 @@ export function TopBar({
           </span>
         </button>
 
-        <span className="text-sm text-slate-500 hidden md:inline">
+        <span className="text-sm text-text-secondary hidden md:inline">
           {userName}
         </span>
 
         <form action={signOut}>
           <button
             type="submit"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-error hover:bg-error-light rounded-lg transition-colors"
             title="Sign out"
             aria-label="Sign out"
           >
-            <LogOut className="w-4 h-4" />
+            <SignOut className="w-4 h-4" />
             <span className="hidden sm:inline">Sign out</span>
           </button>
         </form>

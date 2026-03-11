@@ -66,24 +66,24 @@ describe("SidebarNav", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).toContain("indigo");
+    expect(homeLink?.className).toContain("bg-primary-light");
   });
 
   it("highlights Chores when on /dashboard/chores", () => {
     mockPathname.mockReturnValue("/dashboard/chores");
     render(<SidebarNav />);
     const choresLink = screen.getByText("Chores").closest("a");
-    expect(choresLink?.className).toContain("indigo");
+    expect(choresLink?.className).toContain("bg-primary-light");
     // Home should NOT be highlighted
     const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).not.toContain("indigo");
+    expect(homeLink?.className).not.toContain("bg-primary-light");
   });
 
   it("highlights Chores when on sub-route /dashboard/chores/new", () => {
     mockPathname.mockReturnValue("/dashboard/chores/new");
     render(<SidebarNav />);
     const choresLink = screen.getByText("Chores").closest("a");
-    expect(choresLink?.className).toContain("indigo");
+    expect(choresLink?.className).toContain("bg-primary-light");
   });
 
   it("calls onNavigate when a link is clicked", () => {

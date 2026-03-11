@@ -23,7 +23,7 @@ export function GoogleOAuthButton({ inviteCode }: { inviteCode?: string }) {
     <button
       type="button"
       onClick={handleGoogleSignIn}
-      className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-300 rounded-xl font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+      className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-xl font-medium text-text-primary hover:bg-background transition-colors"
     >
       <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
         <path
