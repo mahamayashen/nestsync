@@ -22,7 +22,7 @@ export function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background lg:flex">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -33,18 +33,15 @@ export function DashboardShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border-light transform transition-transform lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-surface border-r border-border-light transform transition-transform lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full lg:h-screen">
           {/* Sidebar header */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-border-light">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-text-on-primary text-sm font-logo">N</span>
-              </div>
-              <span className="font-logo text-xl text-primary">NestSync</span>
+              <span className="font-logo text-2xl text-primary">NestSync</span>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -81,7 +78,7 @@ export function DashboardShell({
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex-1 min-w-0">
         <TopBar
           householdName={household.name}
           inviteCode={household.invite_code}

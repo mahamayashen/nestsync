@@ -118,7 +118,7 @@ describe("createChoreTemplate", () => {
     await expect(createChoreTemplate(validFormData())).rejects.toThrow(
       "NEXT_REDIRECT"
     );
-    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/chores");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/my");
   });
 
   it("calls supabase insert for template", async () => {
@@ -206,7 +206,7 @@ describe("createChoreTemplate", () => {
     await expect(createChoreTemplate(validFormData())).rejects.toThrow(
       "NEXT_REDIRECT"
     );
-    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/chores");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/my");
   });
 });
 

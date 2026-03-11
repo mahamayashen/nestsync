@@ -29,8 +29,9 @@ describe("SidebarNav", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     expect(screen.getByText("Home")).toBeInTheDocument();
-    expect(screen.getByText("Chores")).toBeInTheDocument();
-    expect(screen.getByText("Expenses")).toBeInTheDocument();
+    expect(screen.getByText("My Page")).toBeInTheDocument();
+    expect(screen.getByText("Household")).toBeInTheDocument();
+    expect(screen.getByText("Calendar")).toBeInTheDocument();
     expect(screen.getByText("Feed")).toBeInTheDocument();
     expect(screen.getByText("Votes")).toBeInTheDocument();
   });
@@ -40,26 +41,29 @@ describe("SidebarNav", () => {
     render(<SidebarNav />);
     const homeLink = screen.getByText("Home").closest("a");
     expect(homeLink).toHaveAttribute("href", "/dashboard");
-    const choresLink = screen.getByText("Chores").closest("a");
-    expect(choresLink).toHaveAttribute("href", "/dashboard/chores");
+    const myPageLink = screen.getByText("My Page").closest("a");
+    expect(myPageLink).toHaveAttribute("href", "/dashboard/my");
+    const householdLink = screen.getByText("Household").closest("a");
+    expect(householdLink).toHaveAttribute("href", "/dashboard/household");
+    const calendarLink = screen.getByText("Calendar").closest("a");
+    expect(calendarLink).toHaveAttribute("href", "/dashboard/calendar");
   });
 
   it("renders disabled items as non-clickable divs", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
-    // Disabled items should not be links
-    const expensesEl = screen.getByText("Expenses").closest("div");
-    expect(expensesEl).not.toBeNull();
-    expect(expensesEl?.tagName).toBe("DIV");
-    expect(screen.getByText("Expenses").closest("a")).toBeNull();
+    const votesEl = screen.getByText("Votes").closest("div");
+    expect(votesEl).not.toBeNull();
+    expect(votesEl?.tagName).toBe("DIV");
+    expect(screen.getByText("Votes").closest("a")).toBeNull();
   });
 
   it("shows 'Soon' badge for disabled items", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     const soonBadges = screen.getAllByText("Soon");
-    // Expenses, Votes = 2 disabled items (Feed is now enabled)
-    expect(soonBadges).toHaveLength(2);
+    // Only Votes is disabled
+    expect(soonBadges).toHaveLength(1);
   });
 
   it("highlights Home when on /dashboard", () => {
@@ -69,21 +73,20 @@ describe("SidebarNav", () => {
     expect(homeLink?.className).toContain("bg-primary-light");
   });
 
-  it("highlights Chores when on /dashboard/chores", () => {
-    mockPathname.mockReturnValue("/dashboard/chores");
+  it("highlights My Page when on /dashboard/my", () => {
+    mockPathname.mockReturnValue("/dashboard/my");
     render(<SidebarNav />);
-    const choresLink = screen.getByText("Chores").closest("a");
-    expect(choresLink?.className).toContain("bg-primary-light");
-    // Home should NOT be highlighted
+    const myPageLink = screen.getByText("My Page").closest("a");
+    expect(myPageLink?.className).toContain("bg-primary-light");
     const homeLink = screen.getByText("Home").closest("a");
     expect(homeLink?.className).not.toContain("bg-primary-light");
   });
 
-  it("highlights Chores when on sub-route /dashboard/chores/new", () => {
-    mockPathname.mockReturnValue("/dashboard/chores/new");
+  it("highlights Calendar when on /dashboard/calendar", () => {
+    mockPathname.mockReturnValue("/dashboard/calendar");
     render(<SidebarNav />);
-    const choresLink = screen.getByText("Chores").closest("a");
-    expect(choresLink?.className).toContain("bg-primary-light");
+    const calendarLink = screen.getByText("Calendar").closest("a");
+    expect(calendarLink?.className).toContain("bg-primary-light");
   });
 
   it("calls onNavigate when a link is clicked", () => {

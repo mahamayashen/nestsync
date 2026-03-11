@@ -52,15 +52,15 @@ export async function createChoreTemplate(
     return { error: "Failed to create chore template. Please try again." };
   }
 
-  // 2. Generate instances for the next 30 days
+  // 2. Generate instances for the next 7 days (rolling window)
   const today = new Date();
-  const thirtyDaysOut = new Date();
-  thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+  const sevenDaysOut = new Date();
+  sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
 
   const dates = computeRecurrenceDates(
     template.recurrence,
     today,
-    thirtyDaysOut
+    sevenDaysOut
   );
 
   if (dates.length > 0) {
@@ -85,7 +85,7 @@ export async function createChoreTemplate(
     }
   }
 
-  redirect("/dashboard/chores");
+  redirect("/dashboard/my");
 }
 
 // ---- COMPLETE A CHORE ----

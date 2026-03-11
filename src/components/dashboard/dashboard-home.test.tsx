@@ -10,8 +10,6 @@ vi.mock("@/components/chores/weekly-stats", () => ({
 const defaultProps = {
   userName: "Alice",
   householdId: "h-001",
-  myPendingCount: 5,
-  totalPendingCount: 12,
   todayChores: [
     {
       id: "inst-1",
@@ -33,6 +31,8 @@ const defaultProps = {
   weeklyStats: [
     { memberId: "m-1", displayName: "Alice", points: 15, count: 3 },
   ],
+  todayProgress: { completed: 2, total: 5 },
+  householdStreak: 4,
 };
 
 describe("DashboardHome", () => {
@@ -41,34 +41,34 @@ describe("DashboardHome", () => {
     expect(screen.getByText(/welcome back, alice/i)).toBeInTheDocument();
   });
 
-  it("shows my pending chores count", () => {
+  it("shows today's progress ring", () => {
     render(<DashboardHome {...defaultProps} />);
-    expect(screen.getByText("My pending chores")).toBeInTheDocument();
-    // "5" appears both as pending count and as a chore points badge
-    expect(screen.getAllByText("5").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Today's Progress")).toBeInTheDocument();
+    expect(screen.getByText("3 remaining")).toBeInTheDocument();
   });
 
-  it("shows due today count", () => {
+  it("shows household streak", () => {
     render(<DashboardHome {...defaultProps} />);
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Due today")).toBeInTheDocument();
+    expect(screen.getByText("Household streak")).toBeInTheDocument();
+    expect(screen.getByText("4")).toBeInTheDocument();
   });
 
-  it("shows total household chores count", () => {
+  it("shows weekly MVP", () => {
     render(<DashboardHome {...defaultProps} />);
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("Total household chores")).toBeInTheDocument();
+    // Alice is the MVP with 15 points (also appears as chore assignee)
+    expect(screen.getAllByText("Alice").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/15 pts/)).toBeInTheDocument();
+  });
+
+  it("shows no MVP message when no stats", () => {
+    render(<DashboardHome {...defaultProps} weeklyStats={[]} />);
+    expect(screen.getByText("No MVP yet")).toBeInTheDocument();
   });
 
   it("renders today's chore items", () => {
     render(<DashboardHome {...defaultProps} />);
     expect(screen.getByText("Clean kitchen")).toBeInTheDocument();
     expect(screen.getByText("Vacuum living room")).toBeInTheDocument();
-  });
-
-  it("shows assignee name for today's chores", () => {
-    render(<DashboardHome {...defaultProps} />);
-    expect(screen.getByText("Alice")).toBeInTheDocument();
   });
 
   it("shows 'Unassigned' for chores without assignee", () => {
@@ -80,7 +80,7 @@ describe("DashboardHome", () => {
     render(<DashboardHome {...defaultProps} />);
     expect(screen.getByRole("link", { name: /view all/i })).toHaveAttribute(
       "href",
-      "/dashboard/chores"
+      "/dashboard/my"
     );
   });
 
@@ -96,8 +96,13 @@ describe("DashboardHome", () => {
     expect(screen.getByTestId("weekly-stats")).toBeInTheDocument();
   });
 
-  it("shows chore points in badge", () => {
-    render(<DashboardHome {...defaultProps} />);
-    expect(screen.getByText("3")).toBeInTheDocument();
+  it("shows all-done message when progress is complete", () => {
+    render(
+      <DashboardHome
+        {...defaultProps}
+        todayProgress={{ completed: 5, total: 5 }}
+      />
+    );
+    expect(screen.getByText("All done! Great job!")).toBeInTheDocument();
   });
 });
