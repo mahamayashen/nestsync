@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/lib/household/queries";
 import {
   getChoreInstances,
+  getChoreTemplates,
   getWeeklyChoreStats,
-  replenishInstances,
+  ensureWeekInstances,
   getOnTimeRate,
   getTodayProgress,
 } from "@/lib/chores/queries";
@@ -14,8 +15,8 @@ export default async function HouseholdPage() {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/login");
 
-  // Ensure rolling 7-day window is filled
-  await replenishInstances(membership.householdId);
+  // Ensure current week's instances exist (Mon–Sun)
+  await ensureWeekInstances(membership.householdId);
 
   const [members, weeklyStats, allPendingChores, teamOnTimeRate, todayProgress] =
     await Promise.all([
@@ -39,6 +40,10 @@ export default async function HouseholdPage() {
     memberRateMap[mr.memberId] = { rate: mr.rate, total: mr.total };
   }
 
+  // Fetch templates for admin chore management
+  const isAdmin = membership.role === "admin";
+  const templates = isAdmin ? await getChoreTemplates(membership.householdId) : [];
+
   return (
     <HouseholdDashboard
       householdId={membership.householdId}
@@ -49,6 +54,8 @@ export default async function HouseholdPage() {
       teamOnTimeRate={teamOnTimeRate}
       todayProgress={todayProgress}
       memberOnTimeRates={memberRateMap}
+      isAdmin={isAdmin}
+      templates={templates}
     />
   );
 }

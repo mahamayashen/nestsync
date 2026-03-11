@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getChoreInstances,
   getWeeklyChoreStats,
-  replenishInstances,
+  ensureWeekInstances,
   getTodayProgress,
   getCompletionStreak,
 } from "@/lib/chores/queries";
@@ -25,8 +25,8 @@ export default async function DashboardPage() {
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-  // Ensure rolling 7-day window is filled, then fetch data
-  await replenishInstances(membership.householdId);
+  // Ensure current week's instances exist (Mon–Sun)
+  await ensureWeekInstances(membership.householdId);
 
   const [todayInstances, weeklyStats, todayProgress, householdStreak] =
     await Promise.all([

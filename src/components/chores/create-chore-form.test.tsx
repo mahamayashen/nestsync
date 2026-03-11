@@ -39,17 +39,19 @@ describe("CreateChoreForm", () => {
     expect(screen.getByLabelText(/points/i)).toBeInTheDocument();
   });
 
-  it("renders recurrence select", () => {
-    render(<CreateChoreForm members={mockMembers} />);
-    expect(screen.getByLabelText(/recurrence/i)).toBeInTheDocument();
-  });
-
-  it("renders recurrence options", () => {
+  it("renders schedule toggle with One-time and Recurring options", () => {
     render(<CreateChoreForm members={mockMembers} />);
     expect(screen.getByText("One-time")).toBeInTheDocument();
+    expect(screen.getByText("Recurring")).toBeInTheDocument();
+  });
+
+  it("renders day-of-week picker in recurring mode by default", () => {
+    render(<CreateChoreForm members={mockMembers} />);
+    expect(screen.getByText("Mon")).toBeInTheDocument();
+    expect(screen.getByText("Fri")).toBeInTheDocument();
+    expect(screen.getByText("Sun")).toBeInTheDocument();
     expect(screen.getByText("Daily")).toBeInTheDocument();
-    expect(screen.getByText("Weekly")).toBeInTheDocument();
-    expect(screen.getByText("Monthly")).toBeInTheDocument();
+    expect(screen.getByText("Weekdays")).toBeInTheDocument();
   });
 
   it("renders assignee select with members", () => {
@@ -85,12 +87,15 @@ describe("CreateChoreForm", () => {
     expect(pointsInput.defaultValue).toBe("1");
   });
 
-  it("has correct default value for recurrence", () => {
+  it("defaults to recurring mode with all days selected", () => {
     render(<CreateChoreForm members={mockMembers} />);
-    const recurrenceSelect = screen.getByLabelText(
-      /recurrence/i
-    ) as HTMLSelectElement;
-    expect(recurrenceSelect.value).toBe("weekly");
+    // Recurring mode is active by default — "Daily" shortcut should be highlighted
+    // and all 7 day buttons should be present
+    const buttons = screen.getAllByRole("button");
+    const dayButtons = buttons.filter((b) =>
+      ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(b.textContent ?? "")
+    );
+    expect(dayButtons).toHaveLength(7);
   });
 
   it("does not show error message on initial render", () => {

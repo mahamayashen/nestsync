@@ -11,8 +11,9 @@ import {
   Scales,
 } from "@phosphor-icons/react";
 import { MemberCard } from "./member-card";
+import { AdminChoreManager } from "./admin-chore-manager";
 import { WeeklyStats } from "@/components/chores/weekly-stats";
-import type { ChoreInstanceRow } from "@/lib/chores/queries";
+import type { ChoreInstanceRow, ChoreTemplateRow } from "@/lib/chores/queries";
 import type { HouseholdMemberWithUser } from "@/lib/household/members";
 
 interface HouseholdDashboardProps {
@@ -29,6 +30,8 @@ interface HouseholdDashboardProps {
   teamOnTimeRate: { onTime: number; total: number; rate: number };
   todayProgress: { completed: number; total: number };
   memberOnTimeRates: Record<string, { rate: number; total: number }>;
+  isAdmin?: boolean;
+  templates?: ChoreTemplateRow[];
 }
 
 // Simple horizontal workload bar
@@ -84,6 +87,8 @@ export function HouseholdDashboard({
   teamOnTimeRate,
   todayProgress,
   memberOnTimeRates,
+  isAdmin,
+  templates,
 }: HouseholdDashboardProps) {
   const supabase = useSupabase();
 
@@ -248,6 +253,15 @@ export function HouseholdDashboard({
 
       {/* Leaderboard */}
       <WeeklyStats householdId={householdId} initialStats={weeklyStats} />
+
+      {/* Admin chore management */}
+      {isAdmin && templates && templates.length > 0 && (
+        <AdminChoreManager
+          householdId={householdId}
+          members={members}
+          initialTemplates={templates}
+        />
+      )}
     </div>
   );
 }
