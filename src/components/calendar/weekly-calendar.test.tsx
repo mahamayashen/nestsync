@@ -20,7 +20,12 @@ vi.mock("@/hooks/use-supabase", () => ({
 const baseProps = {
   householdId: "h-001",
   currentMemberId: "m-001",
-  initialEvents: [],
+  currentRole: "member" as const,
+  members: [
+    { id: "m-001", user_id: "u1", role: "member", joined_at: "", users: { display_name: "Alice", avatar_url: null } },
+    { id: "m-002", user_id: "u2", role: "member", joined_at: "", users: { display_name: "Bob", avatar_url: null } },
+  ],
+  initialEvents: [] as never[],
   initialWeekStart: "2026-03-09", // Monday
   memberMap: { "m-001": "Alice", "m-002": "Bob" },
 };

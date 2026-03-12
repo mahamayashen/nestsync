@@ -12,6 +12,7 @@ const defaultProps = {
   householdName: "Test Household",
   inviteCode: "ABC12345",
   userName: "Alice",
+  avatarUrl: null as string | null,
   onMenuToggle: vi.fn(),
 };
 

@@ -125,10 +125,10 @@ describe("evaluateProposalOutcome", () => {
     });
 
     it("handles large household", () => {
-      const votes = Array.from({ length: 6 }, () => ({ vote: "yes" as const }));
-      votes.push(
-        ...Array.from({ length: 4 }, () => ({ vote: "no" as const }))
-      );
+      const votes: { vote: "yes" | "no" }[] = [
+        ...Array.from({ length: 6 }, () => ({ vote: "yes" as const })),
+        ...Array.from({ length: 4 }, () => ({ vote: "no" as const })),
+      ];
       // 10 eligible, 50% threshold, all 10 voted, 6 yes / 4 no
       const result = evaluateProposalOutcome(10, 0.5, votes);
       expect(result).toBe("passed");
