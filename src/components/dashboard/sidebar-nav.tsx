@@ -18,7 +18,7 @@ const navItems: { href: string; label: string; icon: Icon; enabled: boolean }[] 
   { href: "/dashboard/household", label: "Household", icon: UsersThree, enabled: true },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDots, enabled: true },
   { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: true },
-  { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: false },
+  { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: true },
 ];
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
