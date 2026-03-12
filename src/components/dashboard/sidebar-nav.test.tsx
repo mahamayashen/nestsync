@@ -70,23 +70,23 @@ describe("SidebarNav", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).toContain("bg-primary-light");
+    expect(homeLink?.className).toContain("bg-sage-medium");
   });
 
   it("highlights My Page when on /dashboard/my", () => {
     mockPathname.mockReturnValue("/dashboard/my");
     render(<SidebarNav />);
     const myPageLink = screen.getByText("My Page").closest("a");
-    expect(myPageLink?.className).toContain("bg-primary-light");
+    expect(myPageLink?.className).toContain("bg-sage-medium");
     const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).not.toContain("bg-primary-light");
+    expect(homeLink?.className).not.toContain("bg-sage-medium");
   });
 
   it("highlights Calendar when on /dashboard/calendar", () => {
     mockPathname.mockReturnValue("/dashboard/calendar");
     render(<SidebarNav />);
     const calendarLink = screen.getByText("Calendar").closest("a");
-    expect(calendarLink?.className).toContain("bg-primary-light");
+    expect(calendarLink?.className).toContain("bg-sage-medium");
   });
 
   it("calls onNavigate when a link is clicked", () => {

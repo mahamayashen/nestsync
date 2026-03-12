@@ -2,33 +2,23 @@ import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/lib/household/queries";
 import { getCalendarEvents } from "@/lib/calendar/queries";
 import { getHouseholdMembers } from "@/lib/household/members";
-import { replenishInstances } from "@/lib/chores/queries";
+import { ensureWeekInstances } from "@/lib/chores/queries";
+import {
+  getWeekBounds,
+  formatDateForDB,
+} from "@/lib/chores/instance-generator";
 import { WeeklyCalendar } from "@/components/calendar/weekly-calendar";
-
-function getMonday(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function getSunday(mondayStr: string): string {
-  const d = new Date(mondayStr + "T00:00:00");
-  d.setDate(d.getDate() + 6);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 export default async function CalendarPage() {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/login");
 
-  const now = new Date();
-  const weekStart = getMonday(now);
-  const weekEnd = getSunday(weekStart);
+  const { monday, sunday } = getWeekBounds();
+  const weekStart = formatDateForDB(monday);
+  const weekEnd = formatDateForDB(sunday);
 
-  // Ensure rolling 7-day window is filled
-  await replenishInstances(membership.householdId);
+  // Ensure current week's instances exist (Mon–Sun)
+  await ensureWeekInstances(membership.householdId);
 
   const [events, members] = await Promise.all([
     getCalendarEvents(membership.householdId, weekStart, weekEnd),
@@ -44,6 +34,8 @@ export default async function CalendarPage() {
     <WeeklyCalendar
       householdId={membership.householdId}
       currentMemberId={membership.memberId}
+      currentRole={membership.role}
+      members={members}
       initialEvents={events}
       initialWeekStart={weekStart}
       memberMap={memberMap}
