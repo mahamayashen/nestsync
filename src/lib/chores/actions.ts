@@ -36,7 +36,7 @@ async function insertChoreTemplate(
   const rawScheduleDays = formData.getAll("scheduleDays");
   const parsed = createChoreTemplateSchema.safeParse({
     title: formData.get("title"),
-    description: formData.get("description"),
+    description: formData.get("description") ?? undefined,
     points: formData.get("points"),
     recurrence: formData.get("recurrence"),
     scheduleDays: rawScheduleDays.length > 0 ? rawScheduleDays : null,
