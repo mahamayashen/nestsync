@@ -169,12 +169,12 @@ describe("DashboardShell", () => {
     expect(aside?.className).toContain("-translate-x-full");
   });
 
-  it("renders N logo in sidebar", () => {
+  it("renders NestSync text logo in sidebar", () => {
     render(
       <DashboardShell {...defaultProps}>
         <div>Content</div>
       </DashboardShell>
     );
-    expect(screen.getByText("N")).toBeInTheDocument();
+    expect(screen.getByText("NestSync")).toBeInTheDocument();
   });
 });

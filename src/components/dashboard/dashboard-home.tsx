@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import {
-  ClipboardText,
-  CalendarBlank,
+  Fire,
   Star,
   ArrowRight,
+  Trophy,
+  Target,
 } from "@phosphor-icons/react";
 import { WeeklyStats } from "@/components/chores/weekly-stats";
 
@@ -24,8 +25,6 @@ interface ChoreInstance {
 interface DashboardHomeProps {
   userName: string;
   householdId: string;
-  myPendingCount: number;
-  totalPendingCount: number;
   todayChores: ChoreInstance[];
   weeklyStats: {
     memberId: string;
@@ -33,21 +32,75 @@ interface DashboardHomeProps {
     points: number;
     count: number;
   }[];
+  todayProgress: { completed: number; total: number };
+  householdStreak: number;
+}
+
+// SVG circular progress ring
+function ProgressRing({
+  completed,
+  total,
+}: {
+  completed: number;
+  total: number;
+}) {
+  const size = 80;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = total > 0 ? completed / total : 0;
+  const offset = circumference * (1 - progress);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Background ring */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          className="text-border-light"
+        />
+        {/* Progress ring */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className={progress >= 1 ? "text-success" : "text-primary"}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-bold text-text-primary">{completed}</span>
+        <span className="text-[10px] text-text-muted">of {total}</span>
+      </div>
+    </div>
+  );
 }
 
 export function DashboardHome({
   userName,
   householdId,
-  myPendingCount,
-  totalPendingCount,
   todayChores,
   weeklyStats,
+  todayProgress,
+  householdStreak,
 }: DashboardHomeProps) {
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+
+  const mvp = weeklyStats.length > 0 ? weeklyStats[0] : null;
 
   return (
     <div className="space-y-6">
@@ -59,46 +112,77 @@ export function DashboardHome({
         <p className="text-text-secondary mt-1">{today}</p>
       </div>
 
-      {/* Quick stats */}
+      {/* Household Pulse stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface rounded-xl border border-border-light p-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
-              <ClipboardText className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {myPendingCount}
-              </p>
-              <p className="text-sm text-text-secondary">My pending chores</p>
-            </div>
+        {/* Today's Progress — circular ring */}
+        <div className="bg-surface rounded-xl border border-border-light p-5 flex items-center gap-4">
+          <ProgressRing
+            completed={todayProgress.completed}
+            total={todayProgress.total}
+          />
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              Today&apos;s Progress
+            </p>
+            <p className="text-xs text-text-secondary mt-0.5">
+              {todayProgress.total === 0
+                ? "No chores scheduled"
+                : todayProgress.completed === todayProgress.total
+                  ? "All done! Great job!"
+                  : `${todayProgress.total - todayProgress.completed} remaining`}
+            </p>
           </div>
         </div>
 
+        {/* Household Streak */}
         <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-highlight-light rounded-lg flex items-center justify-center">
-              <CalendarBlank className="w-5 h-5 text-highlight" />
+              <Fire className="w-5 h-5 text-highlight" weight="fill" />
             </div>
             <div>
               <p className="text-2xl font-bold text-text-primary">
-                {todayChores.length}
+                {householdStreak}
+                <span className="text-sm font-normal text-text-muted ml-1">
+                  {householdStreak === 1 ? "day" : "days"}
+                </span>
               </p>
-              <p className="text-sm text-text-secondary">Due today</p>
+              <p className="text-sm text-text-secondary">Household streak</p>
             </div>
           </div>
         </div>
 
+        {/* This Week's MVP */}
         <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-accent-light rounded-lg flex items-center justify-center">
-              <Star className="w-5 h-5 text-accent" />
+              {mvp ? (
+                <Trophy className="w-5 h-5 text-accent" weight="fill" />
+              ) : (
+                <Target className="w-5 h-5 text-accent" />
+              )}
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {totalPendingCount}
-              </p>
-              <p className="text-sm text-text-secondary">Total household chores</p>
+              {mvp ? (
+                <>
+                  <p className="text-sm font-bold text-text-primary">
+                    {mvp.displayName}
+                  </p>
+                  <p className="text-xs text-text-secondary flex items-center gap-1">
+                    <Star className="w-3 h-3 text-accent" weight="fill" />
+                    {mvp.points} pts &middot; Week&apos;s MVP
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-text-primary">
+                    No MVP yet
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Complete chores to lead!
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -112,7 +196,7 @@ export function DashboardHome({
               Today&apos;s Chores
             </h3>
             <Link
-              href="/dashboard/chores"
+              href="/dashboard/my"
               className="text-sm text-primary hover:text-primary-hover flex items-center gap-1"
             >
               View all <ArrowRight className="w-3.5 h-3.5" />
