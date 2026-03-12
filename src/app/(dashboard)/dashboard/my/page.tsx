@@ -3,7 +3,7 @@ import { getCurrentMembership } from "@/lib/household/queries";
 import { createClient } from "@/lib/supabase/server";
 import {
   getChoreInstances,
-  ensureWeekInstances,
+  replenishInstances,
   getCompletionStreak,
   getOnTimeRate,
   getWeekComparison,
@@ -21,8 +21,8 @@ export default async function MyPage() {
     .eq("id", membership.userId)
     .single();
 
-  // Ensure current week's instances exist (Mon–Sun)
-  await ensureWeekInstances(membership.householdId);
+  // Ensure rolling 7-day window is filled
+  await replenishInstances(membership.householdId);
 
   const [myPendingChores, myStreak, onTimeRate, weekComparison] =
     await Promise.all([
@@ -36,7 +36,6 @@ export default async function MyPage() {
     ]);
 
   return (
-    <div className="max-w-5xl">
     <MyPageDashboard
       userName={user?.display_name ?? "User"}
       householdId={membership.householdId}
@@ -46,6 +45,5 @@ export default async function MyPage() {
       onTimeRate={onTimeRate}
       weekComparison={weekComparison}
     />
-    </div>
   );
 }

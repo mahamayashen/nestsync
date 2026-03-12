@@ -291,7 +291,6 @@ export type Database = {
           id: string
           points: number
           recurrence: Database["public"]["Enums"]["Recurrence"]
-          schedule_days: number[] | null
           title: string
           updated_at: string
         }
@@ -305,7 +304,6 @@ export type Database = {
           id?: string
           points?: number
           recurrence: Database["public"]["Enums"]["Recurrence"]
-          schedule_days?: number[] | null
           title: string
           updated_at?: string
         }
@@ -319,7 +317,6 @@ export type Database = {
           id?: string
           points?: number
           recurrence?: Database["public"]["Enums"]["Recurrence"]
-          schedule_days?: number[] | null
           title?: string
           updated_at?: string
         }

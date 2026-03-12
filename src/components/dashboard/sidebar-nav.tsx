@@ -55,8 +55,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
               isActive
-                ? "bg-sage-medium text-primary-hover border border-sage-solid/20"
-                : "text-text-secondary hover:bg-sage-light hover:text-text-primary"
+                ? "bg-primary-light text-primary-hover"
+                : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary"
             }`}
           >
             <item.icon className="w-5 h-5" />

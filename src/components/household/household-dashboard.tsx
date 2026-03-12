@@ -11,9 +11,8 @@ import {
   Scales,
 } from "@phosphor-icons/react";
 import { MemberCard } from "./member-card";
-import { AdminChoreManager } from "./admin-chore-manager";
 import { WeeklyStats } from "@/components/chores/weekly-stats";
-import type { ChoreInstanceRow, ChoreTemplateRow } from "@/lib/chores/queries";
+import type { ChoreInstanceRow } from "@/lib/chores/queries";
 import type { HouseholdMemberWithUser } from "@/lib/household/members";
 
 interface HouseholdDashboardProps {
@@ -30,8 +29,6 @@ interface HouseholdDashboardProps {
   teamOnTimeRate: { onTime: number; total: number; rate: number };
   todayProgress: { completed: number; total: number };
   memberOnTimeRates: Record<string, { rate: number; total: number }>;
-  isAdmin?: boolean;
-  templates?: ChoreTemplateRow[];
 }
 
 // Simple horizontal workload bar
@@ -87,8 +84,6 @@ export function HouseholdDashboard({
   teamOnTimeRate,
   todayProgress,
   memberOnTimeRates,
-  isAdmin,
-  templates,
 }: HouseholdDashboardProps) {
   const supabase = useSupabase();
 
@@ -159,7 +154,7 @@ export function HouseholdDashboard({
       {/* Team Fairness stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Team Completion Rate */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-primary/15 p-5 shadow-sm">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-light rounded-lg flex items-center justify-center">
               <Target className="w-5 h-5 text-primary" weight="fill" />
@@ -177,9 +172,9 @@ export function HouseholdDashboard({
         </div>
 
         {/* Team On-Time Rate */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-sage-solid/15 p-5 shadow-sm">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-sage-medium rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-accent-light rounded-lg flex items-center justify-center">
               <Timer className="w-5 h-5 text-accent" weight="fill" />
             </div>
             <div>
@@ -200,7 +195,7 @@ export function HouseholdDashboard({
         </div>
 
         {/* Today's Household Progress */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-highlight/15 p-5 shadow-sm">
+        <div className="bg-surface rounded-xl border border-border-light p-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-highlight-light rounded-lg flex items-center justify-center">
               <Scales className="w-5 h-5 text-highlight" weight="fill" />
@@ -253,15 +248,6 @@ export function HouseholdDashboard({
 
       {/* Leaderboard */}
       <WeeklyStats householdId={householdId} initialStats={weeklyStats} />
-
-      {/* Admin chore management */}
-      {isAdmin && templates && templates.length > 0 && (
-        <AdminChoreManager
-          householdId={householdId}
-          members={members}
-          initialTemplates={templates}
-        />
-      )}
     </div>
   );
 }

@@ -1,21 +1,16 @@
 "use client";
 
 import { useMemo, useCallback, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useSupabase } from "@/hooks/use-supabase";
-import { CalendarDots, Plus } from "@phosphor-icons/react";
+import { CalendarDots } from "@phosphor-icons/react";
 import { WeekNavigator } from "./week-navigator";
 import { CalendarEventChip } from "./calendar-event-chip";
-import { QuickAddChore } from "./quick-add-chore";
-import { ensureWeekInstancesAction } from "@/lib/chores/actions";
 import type { CalendarEventWithMember } from "@/lib/calendar/queries";
-import type { HouseholdMemberWithUser } from "@/lib/household/members";
 
 interface WeeklyCalendarProps {
   householdId: string;
   currentMemberId: string;
-  currentRole: "member" | "admin";
-  members: HouseholdMemberWithUser[];
   initialEvents: CalendarEventWithMember[];
   initialWeekStart: string;
   memberMap: Record<string, string>; // memberId -> displayName
@@ -43,26 +38,16 @@ function getSunday(mondayStr: string): string {
 
 export function WeeklyCalendar({
   householdId,
-  currentMemberId,
-  currentRole,
-  members,
   initialEvents,
   initialWeekStart,
   memberMap,
 }: WeeklyCalendarProps) {
   const supabase = useSupabase();
-  const queryClient = useQueryClient();
   const [weekStart, setWeekStart] = useState(initialWeekStart);
-  const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
 
   const { data: events } = useQuery({
     queryKey: ["calendar-events", householdId, weekStart],
     queryFn: async () => {
-      // Ensure instances exist for the target week (on-demand generation)
-      if (weekStart !== initialWeekStart) {
-        await ensureWeekInstancesAction(weekStart);
-      }
-
       const dateTo = getSunday(weekStart);
       const { data, error } = await supabase
         .from("calendar_events")
@@ -109,6 +94,7 @@ export function WeeklyCalendar({
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   }, [weekStart]);
 
+  const today = getMonday(new Date()).slice(0, 10);
   const todayFull = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -116,33 +102,15 @@ export function WeeklyCalendar({
 
   const handlePrevWeek = useCallback(() => {
     setWeekStart((prev) => addDays(prev, -7));
-    setQuickAddDate(null);
   }, []);
 
   const handleNextWeek = useCallback(() => {
     setWeekStart((prev) => addDays(prev, 7));
-    setQuickAddDate(null);
   }, []);
 
   const handleToday = useCallback(() => {
     setWeekStart(getMonday(new Date()));
-    setQuickAddDate(null);
   }, []);
-
-  const handleDayClick = useCallback((dateStr: string) => {
-    setQuickAddDate((prev) => (prev === dateStr ? null : dateStr));
-  }, []);
-
-  const handleQuickAddClose = useCallback(() => {
-    setQuickAddDate(null);
-  }, []);
-
-  const handleQuickAddCreated = useCallback(() => {
-    setQuickAddDate(null);
-    queryClient.invalidateQueries({
-      queryKey: ["calendar-events", householdId, weekStart],
-    });
-  }, [queryClient, householdId, weekStart]);
 
   return (
     <div className="space-y-4">
@@ -172,7 +140,6 @@ export function WeeklyCalendar({
             const dayNum = date.getDate();
             const isToday = dateStr === todayFull;
             const dayEvents = eventsByDate.get(dateStr) ?? [];
-            const showQuickAdd = quickAddDate === dateStr;
 
             return (
               <div
@@ -181,47 +148,27 @@ export function WeeklyCalendar({
                   isToday ? "bg-primary-light/30" : "bg-surface"
                 }`}
               >
-                {/* Day header — clickable for quick-add */}
+                {/* Day header */}
                 <div
-                  className={`px-2 py-2.5 text-center border-b border-border-light cursor-pointer group ${
-                    isToday ? "bg-primary-light" : "bg-sage-light"
-                  } hover:bg-sage-medium transition-colors`}
-                  onClick={() => handleDayClick(dateStr)}
+                  className={`px-2 py-2.5 text-center border-b border-border-light ${
+                    isToday ? "bg-primary-light" : "bg-surface-secondary"
+                  }`}
                 >
                   <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
                     {DAY_NAMES[i]}
                   </p>
-                  <div className="flex items-center justify-center gap-1">
-                    <p
-                      className={`text-lg font-bold ${
-                        isToday ? "text-primary" : "text-text-primary"
-                      }`}
-                    >
-                      {dayNum}
-                    </p>
-                    <Plus
-                      size={12}
-                      weight="bold"
-                      className="text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
+                  <p
+                    className={`text-lg font-bold ${
+                      isToday ? "text-primary" : "text-text-primary"
+                    }`}
+                  >
+                    {dayNum}
+                  </p>
                 </div>
 
                 {/* Events */}
-                <div className="flex-1 p-1.5 space-y-1 min-h-[60vh] overflow-y-auto">
-                  {showQuickAdd && (
-                    <QuickAddChore
-                      date={dateStr}
-                      householdId={householdId}
-                      currentMemberId={currentMemberId}
-                      currentRole={currentRole}
-                      members={members}
-                      onClose={handleQuickAddClose}
-                      onCreated={handleQuickAddCreated}
-                    />
-                  )}
-
-                  {dayEvents.length === 0 && !showQuickAdd ? (
+                <div className="flex-1 p-1.5 space-y-1 min-h-[280px] max-h-[480px] overflow-y-auto">
+                  {dayEvents.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
                       <span className="text-[10px] text-text-muted/50">—</span>
                     </div>
@@ -238,7 +185,7 @@ export function WeeklyCalendar({
       </div>
 
       {/* Empty week state */}
-      {(events ?? []).length === 0 && !quickAddDate && (
+      {(events ?? []).length === 0 && (
         <div className="text-center py-8">
           <CalendarDots className="w-10 h-10 text-text-muted mx-auto mb-2" />
           <p className="text-sm text-text-muted">
