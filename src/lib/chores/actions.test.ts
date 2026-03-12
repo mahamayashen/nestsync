@@ -32,11 +32,18 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
+vi.mock("./queries", () => ({
+  ensureWeekInstances: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import after mocks
 import {
   createChoreTemplate,
+  createChoreQuick,
   completeChore,
   deleteChoreTemplate,
+  reassignChore,
+  ensureWeekInstancesAction,
 } from "./actions";
 
 // ---- Supabase mock helper (inline, not hoisted) ----
@@ -50,6 +57,10 @@ function createChain(result: { data: unknown; error: unknown }) {
   chain.delete = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
   chain.is = vi.fn().mockReturnValue(chain);
+  chain.in = vi.fn().mockReturnValue(chain);
+  chain.gte = vi.fn().mockReturnValue(chain);
+  chain.lte = vi.fn().mockReturnValue(chain);
+  chain.neq = vi.fn().mockReturnValue(chain);
   chain.order = vi.fn().mockReturnValue(chain);
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(result);
@@ -409,6 +420,143 @@ describe("deleteChoreTemplate", () => {
     const result = await deleteChoreTemplate(fd);
     expect(result).toEqual(
       expect.objectContaining({ error: expect.stringContaining("only delete templates you created") })
+    );
+  });
+});
+
+// ---- createChoreQuick ----
+
+describe("createChoreQuick", () => {
+  const validFormData = () =>
+    buildFormData({
+      title: "Quick chore",
+      description: "",
+      points: "2",
+      recurrence: "one_time",
+      dueDate: "2026-03-15",
+      assignedTo: TEST_UUID,
+    });
+
+  it("returns success without redirecting", async () => {
+    const result = await createChoreQuick(validFormData());
+    expect(result).toEqual({ success: true });
+    expect(mockRedirect).not.toHaveBeenCalled();
+  });
+
+  it("returns validation error for empty title", async () => {
+    const fd = buildFormData({
+      title: "",
+      points: "2",
+      recurrence: "one_time",
+      assignedTo: TEST_UUID,
+    });
+    const result = await createChoreQuick(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockGetCurrentMembership.mockResolvedValue(null);
+    const result = await createChoreQuick(validFormData());
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+});
+
+// ---- reassignChore ----
+
+describe("reassignChore", () => {
+  beforeEach(() => {
+    mockGetCurrentMembership.mockResolvedValue(
+      mockMembership({ role: "admin" })
+    );
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
+  });
+
+  const validFormData = () =>
+    buildFormData({
+      templateId: TEST_UUID,
+      newAssignee: TEST_UUID_2,
+    });
+
+  it("returns success when admin reassigns", async () => {
+    const result = await reassignChore(validFormData());
+    expect(result).toEqual({ success: true });
+  });
+
+  it("calls update on chore_templates and chore_instances", async () => {
+    await reassignChore(validFormData());
+    const fromCalls = mockSupa.from.mock.calls.map((c: string[]) => c[0]);
+    expect(fromCalls).toContain("chore_templates");
+    expect(fromCalls).toContain("chore_instances");
+  });
+
+  it("returns error when non-admin tries to reassign", async () => {
+    mockGetCurrentMembership.mockResolvedValue(
+      mockMembership({ role: "member" })
+    );
+    const result = await reassignChore(validFormData());
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("admin") })
+    );
+  });
+
+  it("returns validation error for invalid templateId", async () => {
+    const fd = buildFormData({
+      templateId: "not-valid",
+      newAssignee: TEST_UUID_2,
+    });
+    const result = await reassignChore(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns validation error for invalid newAssignee", async () => {
+    const fd = buildFormData({
+      templateId: TEST_UUID,
+      newAssignee: "not-valid",
+    });
+    const result = await reassignChore(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockGetCurrentMembership.mockResolvedValue(null);
+    const result = await reassignChore(validFormData());
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+
+  it("returns error on template update failure", async () => {
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { message: "DB error" } })
+    );
+    const result = await reassignChore(validFormData());
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("Failed") })
+    );
+  });
+});
+
+// ---- ensureWeekInstancesAction ----
+
+describe("ensureWeekInstancesAction", () => {
+  it("does nothing when not authenticated", async () => {
+    mockGetCurrentMembership.mockResolvedValue(null);
+    await ensureWeekInstancesAction("2026-03-09");
+    expect(mockSupa.from).not.toHaveBeenCalled();
+  });
+
+  it("calls ensureWeekInstances when authenticated", async () => {
+    const { ensureWeekInstances } = await import("./queries");
+    await ensureWeekInstancesAction("2026-03-09");
+    expect(ensureWeekInstances).toHaveBeenCalledWith(
+      "household-001",
+      "2026-03-09"
     );
   });
 });
