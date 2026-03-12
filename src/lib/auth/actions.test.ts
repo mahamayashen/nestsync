@@ -498,4 +498,175 @@ describe("signOut", () => {
     expect(mockSupa.auth.signOut).toHaveBeenCalled();
     expect(mockRedirect).toHaveBeenCalledWith("/login");
   });
+
+  it("still redirects to /login even when signOut returns an error", async () => {
+    mockSupa.auth.signOut.mockResolvedValue({
+      error: { message: "Network error" },
+    });
+    await expect(signOut()).rejects.toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
+  });
+});
+
+// ---- signup with invite code ----
+
+describe("signup with invite code", () => {
+  it("redirects to /dashboard when invite code join succeeds", async () => {
+    // Make joinHouseholdByCode succeed: admin household lookup returns household, no existing membership, count < max, insert succeeds
+    let adminCallCount = 0;
+    mockAdmin.from.mockImplementation(() => {
+      adminCallCount++;
+      if (adminCallCount === 1) {
+        // household lookup
+        return createChain({
+          data: { id: "household-001", max_members: 10, deleted_at: null },
+          error: null,
+        });
+      }
+      if (adminCallCount === 2) {
+        // existing membership check
+        return createChain({ data: null, error: null });
+      }
+      // count check
+      return createChain({ data: null, error: null, count: 3 });
+    });
+    // supabase client: getUser returns user, insert succeeds
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
+
+    const fd = buildFormData({
+      email: "new@example.com",
+      password: "secure123",
+      displayName: "New User",
+      inviteCode: "VALIDCODE",
+    });
+    await expect(signup(fd)).rejects.toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("redirects to /onboarding when invite code join fails", async () => {
+    // Make joinHouseholdByCode fail: admin returns null household
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
+
+    const fd = buildFormData({
+      email: "new@example.com",
+      password: "secure123",
+      displayName: "New User",
+      inviteCode: "BADCODE",
+    });
+    await expect(signup(fd)).rejects.toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/onboarding");
+  });
+});
+
+// ---- createHousehold - member insert failure ----
+
+describe("createHousehold - member insert failure", () => {
+  it("returns error when member insert fails", async () => {
+    let callCount = 0;
+    mockSupa.from.mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // household insert succeeds
+        return createChain({ data: { id: "household-001" }, error: null });
+      }
+      // member insert fails
+      return createChain({ data: null, error: { message: "Insert error" } });
+    });
+
+    const fd = buildFormData({
+      name: "My House",
+      timezone: "America/New_York",
+    });
+    const result = await createHousehold(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("membership") })
+    );
+  });
+});
+
+// ---- joinHousehold - additional edge cases ----
+
+describe("joinHousehold - full household", () => {
+  it("returns error when household is full", async () => {
+    let adminCallCount = 0;
+    mockAdmin.from.mockImplementation(() => {
+      adminCallCount++;
+      if (adminCallCount === 1) {
+        return createChain({
+          data: { id: "household-001", max_members: 5, deleted_at: null },
+          error: null,
+        });
+      }
+      if (adminCallCount === 2) {
+        // no existing membership
+        return createChain({ data: null, error: null });
+      }
+      // count at max
+      return createChain({ data: null, error: null, count: 5 });
+    });
+
+    const fd = buildFormData({ inviteCode: "FULLCODE" });
+    const result = await joinHousehold(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("full") })
+    );
+  });
+
+  it("returns 'already a member' when insert fails with 23505", async () => {
+    let adminCallCount = 0;
+    mockAdmin.from.mockImplementation(() => {
+      adminCallCount++;
+      if (adminCallCount === 1) {
+        return createChain({
+          data: { id: "household-001", max_members: 10, deleted_at: null },
+          error: null,
+        });
+      }
+      if (adminCallCount === 2) {
+        return createChain({ data: null, error: null });
+      }
+      return createChain({ data: null, error: null, count: 2 });
+    });
+    // supabase insert fails with 23505
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { code: "23505", message: "Duplicate" } })
+    );
+
+    const fd = buildFormData({ inviteCode: "DUPCODE" });
+    const result = await joinHousehold(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("already a member") })
+    );
+  });
+
+  it("returns generic error when insert fails with other error", async () => {
+    let adminCallCount = 0;
+    mockAdmin.from.mockImplementation(() => {
+      adminCallCount++;
+      if (adminCallCount === 1) {
+        return createChain({
+          data: { id: "household-001", max_members: 10, deleted_at: null },
+          error: null,
+        });
+      }
+      if (adminCallCount === 2) {
+        return createChain({ data: null, error: null });
+      }
+      return createChain({ data: null, error: null, count: 2 });
+    });
+    // supabase insert fails with non-23505 error
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { code: "50000", message: "DB error" } })
+    );
+
+    const fd = buildFormData({ inviteCode: "ERRCODE" });
+    const result = await joinHousehold(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("Failed") })
+    );
+  });
 });

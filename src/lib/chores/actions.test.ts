@@ -379,4 +379,36 @@ describe("deleteChoreTemplate", () => {
       expect.objectContaining({ error: expect.stringContaining("Failed") })
     );
   });
+
+  it("returns error when member tries to delete another member's template", async () => {
+    mockGetCurrentMembership.mockResolvedValue(
+      mockMembership({ role: "member" })
+    );
+
+    let callCount = 0;
+    mockSupa.from.mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // household settings — members_can_edit_own_chores enabled
+        return createChain({
+          data: { members_can_edit_own_chores: true },
+          error: null,
+        });
+      }
+      if (callCount === 2) {
+        // template ownership — created_by is a DIFFERENT member
+        return createChain({
+          data: { created_by: "other-member-999" },
+          error: null,
+        });
+      }
+      return createChain({ data: null, error: null });
+    });
+
+    const fd = buildFormData({ templateId: TEST_UUID });
+    const result = await deleteChoreTemplate(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("only delete templates you created") })
+    );
+  });
 });

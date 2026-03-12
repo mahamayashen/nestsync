@@ -1,10 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChoreBoard } from "./chore-board";
 import { renderWithProviders } from "@/test/helpers";
 
-// Mock useSupabase — return a chain that never resolves so initialData is used
+// Hoisted mutable resolver so individual tests can control query resolution
+const { mockThenImpl } = vi.hoisted(() => ({
+  mockThenImpl: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-supabase", () => ({
   useSupabase: () => ({
     from: () => {
@@ -14,7 +18,7 @@ vi.mock("@/hooks/use-supabase", () => ({
       chain.is = () => chain;
       chain.order = () => chain;
       Object.defineProperty(chain, "then", {
-        value: () => new Promise(() => {}),
+        value: (resolve: (val: unknown) => void) => mockThenImpl(resolve),
         writable: true,
         configurable: true,
       });
@@ -29,6 +33,13 @@ vi.mock("./chore-card", () => ({
     <div data-testid="chore-card">{instance.title}</div>
   ),
 }));
+
+// Reset to never-resolve before each test so existing tests are unaffected
+beforeEach(() => {
+  mockThenImpl.mockImplementation(() => {
+    /* never calls resolve – initialData is used */
+  });
+});
 
 const mockInstances = [
   {
@@ -165,5 +176,52 @@ describe("ChoreBoard", () => {
     );
     const myChoresBtn = screen.getByText("My Chores");
     expect(myChoresBtn.className).toContain("bg-surface");
+  });
+
+  // --- queryFn coverage tests ---
+
+  it("renders instances fetched from resolved query", async () => {
+    const resolvedInstances = [
+      {
+        id: "inst-100",
+        title: "Fetched chore",
+        points: 5,
+        due_date: "2026-03-15",
+        assigned_to: "member-1",
+        status: "pending",
+        assigned_member: { id: "member-1", users: { display_name: "Alice" } },
+      },
+    ];
+    mockThenImpl.mockImplementation((resolve: (val: unknown) => void) =>
+      resolve({ data: resolvedInstances })
+    );
+    renderWithProviders(
+      <ChoreBoard
+        initialInstances={[]}
+        currentMemberId="member-1"
+        householdId="household-1"
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Fetched chore")).toBeInTheDocument();
+    });
+  });
+
+  it("falls back to empty array when query returns null data", async () => {
+    mockThenImpl.mockImplementation((resolve: (val: unknown) => void) =>
+      resolve({ data: null })
+    );
+    renderWithProviders(
+      <ChoreBoard
+        initialInstances={[]}
+        currentMemberId="member-1"
+        householdId="household-1"
+      />
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByText("No chores assigned to you")
+      ).toBeInTheDocument();
+    });
   });
 });

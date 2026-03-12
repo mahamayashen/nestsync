@@ -105,4 +105,20 @@ describe("DashboardHome", () => {
     );
     expect(screen.getByText("All done! Great job!")).toBeInTheDocument();
   });
+
+  it("shows at most 5 chores even when more than 5 are provided", () => {
+    const manyChores = Array.from({ length: 8 }, (_, i) => ({
+      id: `inst-${i}`,
+      title: `Chore ${i + 1}`,
+      points: 1,
+      due_date: "2026-03-10",
+      assigned_to: null,
+      assigned_member: null,
+    }));
+    render(<DashboardHome {...defaultProps} todayChores={manyChores} />);
+    // Only the first 5 chores should be rendered
+    expect(screen.getByText("Chore 1")).toBeInTheDocument();
+    expect(screen.getByText("Chore 5")).toBeInTheDocument();
+    expect(screen.queryByText("Chore 6")).not.toBeInTheDocument();
+  });
 });

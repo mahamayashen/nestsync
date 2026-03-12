@@ -157,4 +157,67 @@ describe("TemplateCard", () => {
     await user.click(screen.getByRole("button", { name: /delete/i }));
     expect(mockDeleteChoreTemplate).toHaveBeenCalled();
   });
+
+  it("does not render description when it is null", () => {
+    const noDesc = { ...baseTemplate, description: null };
+    renderWithProviders(
+      <TemplateCard template={noDesc} canDelete={false} householdId="h-001" />
+    );
+    expect(
+      screen.queryByText("Wipe down counters and mop floors")
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows 'Unknown' when creator is null", () => {
+    const noCreator = { ...baseTemplate, creator: null };
+    renderWithProviders(
+      <TemplateCard template={noCreator} canDelete={false} householdId="h-001" />
+    );
+    expect(screen.getByText(/Created by Unknown/)).toBeInTheDocument();
+  });
+
+  it("falls back to raw recurrence string when label is not mapped", () => {
+    const unknownRecurrence = { ...baseTemplate, recurrence: "custom_recurrence" };
+    renderWithProviders(
+      <TemplateCard
+        template={unknownRecurrence}
+        canDelete={false}
+        householdId="h-001"
+      />
+    );
+    expect(screen.getByText("custom_recurrence")).toBeInTheDocument();
+  });
+
+  it("shows all standard recurrence labels", () => {
+    const recurrences = [
+      { value: "one_time", label: "One-time" },
+      { value: "daily", label: "Daily" },
+      { value: "monthly", label: "Monthly" },
+    ];
+    for (const { value, label } of recurrences) {
+      const { unmount } = renderWithProviders(
+        <TemplateCard
+          template={{ ...baseTemplate, recurrence: value }}
+          canDelete={false}
+          householdId="h-001"
+        />
+      );
+      expect(screen.getByText(label)).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("disables delete button during pending mutation", async () => {
+    mockDeleteChoreTemplate.mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup();
+    renderWithProviders(
+      <TemplateCard
+        template={baseTemplate}
+        canDelete={true}
+        householdId="h-001"
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /delete/i }));
+    expect(screen.getByRole("button", { name: /delete/i })).toBeDisabled();
+  });
 });

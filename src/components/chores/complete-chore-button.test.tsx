@@ -52,4 +52,18 @@ describe("CompleteChoreButton", () => {
       screen.getByRole("button", { name: /mark this chore as complete/i })
     ).toBeDisabled();
   });
+
+  it("does not throw when completeChore returns error result", async () => {
+    mockCompleteChore.mockResolvedValue({ error: "Failed to complete chore" });
+    const user = userEvent.setup();
+    renderWithProviders(
+      <CompleteChoreButton instanceId="inst-001" householdId="h-001" />
+    );
+    // Should not throw even when result.success is falsy
+    await user.click(
+      screen.getByRole("button", { name: /mark this chore as complete/i })
+    );
+    // Button should still be in the DOM
+    expect(screen.getByText("Done")).toBeInTheDocument();
+  });
 });

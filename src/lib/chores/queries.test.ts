@@ -91,6 +91,30 @@ describe("getChoreInstances", () => {
     });
     expect(result).toEqual([]);
   });
+
+  it("applies assignedTo filter with non-null member id", async () => {
+    mockSupa = { from: vi.fn().mockReturnValue(createChain({ data: [], error: null })) };
+    mockCreateClient.mockResolvedValue(mockSupa);
+
+    const result = await getChoreInstances("h-001", { assignedTo: "member-001" });
+    expect(result).toEqual([]);
+  });
+
+  it("applies only dateFrom filter without dateTo", async () => {
+    mockSupa = { from: vi.fn().mockReturnValue(createChain({ data: [], error: null })) };
+    mockCreateClient.mockResolvedValue(mockSupa);
+
+    const result = await getChoreInstances("h-001", { dateFrom: "2025-03-01" });
+    expect(result).toEqual([]);
+  });
+
+  it("applies only dateTo filter without dateFrom", async () => {
+    mockSupa = { from: vi.fn().mockReturnValue(createChain({ data: [], error: null })) };
+    mockCreateClient.mockResolvedValue(mockSupa);
+
+    const result = await getChoreInstances("h-001", { dateTo: "2025-03-31" });
+    expect(result).toEqual([]);
+  });
 });
 
 // ---- getChoreTemplates ----
