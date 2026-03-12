@@ -99,7 +99,7 @@ beforeEach(() => {
   };
   mockCreateAdminClient.mockReturnValue(mockAdmin);
 
-  mockGetPostAuthRedirect.mockResolvedValue("/dashboard");
+  mockGetPostAuthRedirect.mockResolvedValue("/dashboard/household");
 });
 
 // ---- login ----
@@ -333,7 +333,7 @@ describe("createHousehold", () => {
       timezone: "America/New_York",
     });
     await expect(createHousehold(fd)).rejects.toThrow("NEXT_REDIRECT");
-    expect(mockRedirect).toHaveBeenCalledWith("/dashboard");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/household");
   });
 
   it("creates household, membership, and admin history", async () => {
@@ -414,7 +414,7 @@ describe("joinHousehold", () => {
   it("redirects to dashboard on success", async () => {
     const fd = buildFormData({ inviteCode: "ABC12345" });
     await expect(joinHousehold(fd)).rejects.toThrow("NEXT_REDIRECT");
-    expect(mockRedirect).toHaveBeenCalledWith("/dashboard");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/household");
   });
 
   it("returns error for invalid invite code", async () => {
@@ -542,7 +542,7 @@ describe("signup with invite code", () => {
       inviteCode: "VALIDCODE",
     });
     await expect(signup(fd)).rejects.toThrow("NEXT_REDIRECT");
-    expect(mockRedirect).toHaveBeenCalledWith("/dashboard");
+    expect(mockRedirect).toHaveBeenCalledWith("/dashboard/household");
   });
 
   it("redirects to /onboarding when invite code join fails", async () => {

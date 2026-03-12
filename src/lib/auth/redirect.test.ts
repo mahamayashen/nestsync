@@ -48,12 +48,12 @@ beforeEach(() => {
 });
 
 describe("getPostAuthRedirect", () => {
-  it("returns /dashboard when user has membership", async () => {
+  it("returns /dashboard/household when user has membership", async () => {
     mockSupa.from.mockReturnValue(
       createChain({ data: { id: "member-001" }, error: null })
     );
     const result = await getPostAuthRedirect();
-    expect(result).toBe("/dashboard");
+    expect(result).toBe("/dashboard/household");
   });
 
   it("returns /onboarding when user has no membership", async () => {
@@ -81,11 +81,11 @@ describe("getPostAuthRedirect", () => {
     expect(result).toBe("/custom-path");
   });
 
-  it("returns /dashboard when override is null and user has membership", async () => {
+  it("returns /dashboard/household when override is null and user has membership", async () => {
     mockSupa.from.mockReturnValue(
       createChain({ data: { id: "member-001" }, error: null })
     );
     const result = await getPostAuthRedirect(null);
-    expect(result).toBe("/dashboard");
+    expect(result).toBe("/dashboard/household");
   });
 });

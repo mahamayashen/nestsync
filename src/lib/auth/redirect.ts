@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Determines where to redirect a user after authentication.
- * - Has active household membership → "/dashboard"
+ * - Has active household membership → "/dashboard/household"
  * - No membership → "/onboarding"
  * - Not authenticated → "/login"
  */
@@ -29,7 +29,7 @@ export async function getPostAuthRedirect(
     .maybeSingle();
 
   if (membership) {
-    return overrideRedirect || "/dashboard";
+    return overrideRedirect || "/dashboard/household";
   }
 
   return "/onboarding";

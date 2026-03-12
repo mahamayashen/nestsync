@@ -22,7 +22,7 @@ export default async function JoinHouseholdPage() {
     .maybeSingle();
 
   if (membership) {
-    redirect("/dashboard");
+    redirect("/dashboard/household");
   }
 
   return (

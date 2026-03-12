@@ -47,7 +47,7 @@ export default async function InvitePage({
   if (existingMembership) {
     if (existingMembership.household_id === household.id) {
       // Already in this household — just go to dashboard
-      redirect("/dashboard");
+      redirect("/dashboard/household");
     }
     redirect("/onboarding?error=You+are+already+a+member+of+a+household");
   }
@@ -76,5 +76,5 @@ export default async function InvitePage({
     redirect("/onboarding?error=Failed+to+join+household.+Please+try+again.");
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard/household");
 }

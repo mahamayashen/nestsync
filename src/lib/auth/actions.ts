@@ -72,7 +72,7 @@ export async function signup(formData: FormData): Promise<ActionResult> {
   if (inviteCode) {
     const joinResult = await joinHouseholdByCode(inviteCode);
     if (!joinResult.error) {
-      redirect("/dashboard");
+      redirect("/dashboard/household");
     }
     // If join fails, fall through to onboarding
   }
@@ -192,7 +192,7 @@ export async function createHousehold(
     reason: "household_created",
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/household");
 }
 
 // ---- JOIN HOUSEHOLD ----
@@ -212,7 +212,7 @@ export async function joinHousehold(
     return result;
   }
 
-  redirect("/dashboard");
+  redirect("/dashboard/household");
 }
 
 // ---- Shared helper: join by invite code ----
