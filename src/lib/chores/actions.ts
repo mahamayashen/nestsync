@@ -7,20 +7,30 @@ import {
   createChoreTemplateSchema,
   completeChoreSchema,
   deleteChoreTemplateSchema,
+  reassignChoreSchema,
 } from "./validation";
-import { computeRecurrenceDates, formatDateForDB } from "./instance-generator";
+import {
+  computeRecurrenceDates,
+  computeScheduledDates,
+  formatDateForDB,
+  getWeekBounds,
+} from "./instance-generator";
+import { ensureWeekInstances } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean };
 
-// ---- CREATE CHORE TEMPLATE ----
-export async function createChoreTemplate(
+// ---- SHARED: parse + insert chore template ----
+async function insertChoreTemplate(
   formData: FormData
 ): Promise<ActionResult> {
+  const rawScheduleDays = formData.getAll("scheduleDays");
   const parsed = createChoreTemplateSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
     points: formData.get("points"),
     recurrence: formData.get("recurrence"),
+    scheduleDays: rawScheduleDays.length > 0 ? rawScheduleDays : null,
+    dueDate: formData.get("dueDate") || null,
     assignedTo: formData.get("assignedTo"),
   });
 
@@ -33,6 +43,11 @@ export async function createChoreTemplate(
 
   const supabase = await createClient();
 
+  const scheduleDays =
+    parsed.data.scheduleDays && parsed.data.scheduleDays.length > 0
+      ? parsed.data.scheduleDays
+      : null;
+
   // 1. Insert the template
   const { data: template, error: templateError } = await supabase
     .from("chore_templates")
@@ -42,26 +57,32 @@ export async function createChoreTemplate(
       description: parsed.data.description || null,
       points: parsed.data.points,
       recurrence: parsed.data.recurrence,
+      schedule_days: scheduleDays,
       assigned_to: parsed.data.assignedTo,
       created_by: membership.memberId,
     })
-    .select("id, title, points, recurrence, assigned_to")
+    .select("id, title, points, recurrence, assigned_to, schedule_days")
     .single();
 
   if (templateError || !template) {
     return { error: "Failed to create chore template. Please try again." };
   }
 
-  // 2. Generate instances for the next 7 days (rolling window)
+  // 2. Generate instances
   const today = new Date();
-  const sevenDaysOut = new Date();
-  sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+  const { sunday } = getWeekBounds(today);
 
-  const dates = computeRecurrenceDates(
-    template.recurrence,
-    today,
-    sevenDaysOut
-  );
+  let dates: Date[];
+  if (template.recurrence === "one_time") {
+    const oneTimeDate = parsed.data.dueDate
+      ? new Date(parsed.data.dueDate + "T00:00:00")
+      : today;
+    dates = [oneTimeDate];
+  } else if (template.schedule_days && template.schedule_days.length > 0) {
+    dates = computeScheduledDates(template.schedule_days, today, sunday);
+  } else {
+    dates = computeRecurrenceDates(template.recurrence, today, sunday);
+  }
 
   if (dates.length > 0) {
     const instances = dates.map((date) => ({
@@ -74,8 +95,6 @@ export async function createChoreTemplate(
       status: "pending" as const,
     }));
 
-    // Batch insert — the partial unique index (template_id, due_date)
-    // WHERE status='pending' prevents duplicates (D27)
     const { error: instancesError } = await supabase
       .from("chore_instances")
       .insert(instances);
@@ -85,7 +104,23 @@ export async function createChoreTemplate(
     }
   }
 
+  return { success: true };
+}
+
+// ---- CREATE CHORE TEMPLATE (full-page form — redirects) ----
+export async function createChoreTemplate(
+  formData: FormData
+): Promise<ActionResult> {
+  const result = await insertChoreTemplate(formData);
+  if (result.error) return result;
   redirect("/dashboard/my");
+}
+
+// ---- CREATE CHORE QUICK (calendar inline — no redirect) ----
+export async function createChoreQuick(
+  formData: FormData
+): Promise<ActionResult> {
+  return insertChoreTemplate(formData);
 }
 
 // ---- COMPLETE A CHORE ----
@@ -153,7 +188,6 @@ export async function deleteChoreTemplate(
     if (!household.members_can_edit_own_chores) {
       return { error: "Only the admin can delete chore templates" };
     }
-    // When members_can_edit_own_chores is enabled, members can only delete their own templates
     const { data: template } = await supabase
       .from("chore_templates")
       .select("created_by")
@@ -178,4 +212,60 @@ export async function deleteChoreTemplate(
   }
 
   return { success: true };
+}
+
+// ---- REASSIGN CHORE (admin-only) ----
+export async function reassignChore(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = reassignChoreSchema.safeParse({
+    templateId: formData.get("templateId"),
+    newAssignee: formData.get("newAssignee"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const membership = await getCurrentMembership();
+  if (!membership) return { error: "Not authenticated" };
+
+  if (membership.role !== "admin") {
+    return { error: "Only admins can reassign chores" };
+  }
+
+  const supabase = await createClient();
+
+  // Update the template
+  const { error: templateError } = await supabase
+    .from("chore_templates")
+    .update({ assigned_to: parsed.data.newAssignee })
+    .eq("id", parsed.data.templateId)
+    .eq("household_id", membership.householdId);
+
+  if (templateError) {
+    return { error: "Failed to reassign chore. Please try again." };
+  }
+
+  // Update all future pending instances for this template
+  const todayStr = formatDateForDB(new Date());
+  await supabase
+    .from("chore_instances")
+    .update({ assigned_to: parsed.data.newAssignee })
+    .eq("template_id", parsed.data.templateId)
+    .eq("household_id", membership.householdId)
+    .eq("status", "pending")
+    .gte("due_date", todayStr);
+
+  return { success: true };
+}
+
+// ---- ENSURE WEEK INSTANCES (for calendar on-demand generation) ----
+export async function ensureWeekInstancesAction(
+  weekStart: string
+): Promise<void> {
+  const membership = await getCurrentMembership();
+  if (!membership) return;
+
+  await ensureWeekInstances(membership.householdId, weekStart);
 }

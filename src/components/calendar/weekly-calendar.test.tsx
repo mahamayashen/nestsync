@@ -17,10 +17,20 @@ vi.mock("@/hooks/use-supabase", () => ({
   }),
 }));
 
+vi.mock("@/lib/chores/actions", () => ({
+  createChoreQuick: vi.fn().mockResolvedValue({ success: true }),
+  ensureWeekInstancesAction: vi.fn().mockResolvedValue(undefined),
+}));
+
 const baseProps = {
   householdId: "h-001",
   currentMemberId: "m-001",
-  initialEvents: [],
+  currentRole: "member" as const,
+  members: [
+    { id: "m-001", user_id: "u1", role: "member", joined_at: "", users: { display_name: "Alice", avatar_url: null } },
+    { id: "m-002", user_id: "u2", role: "member", joined_at: "", users: { display_name: "Bob", avatar_url: null } },
+  ],
+  initialEvents: [] as never[],
   initialWeekStart: "2026-03-09", // Monday
   memberMap: { "m-001": "Alice", "m-002": "Bob" },
 };
@@ -96,5 +106,60 @@ describe("WeeklyCalendar", () => {
     renderWithProviders(<WeeklyCalendar {...baseProps} />);
     // Should display "Mar 9 – 15, 2026"
     expect(screen.getByText(/Mar 9/)).toBeInTheDocument();
+  });
+
+  it("navigates to previous week when prev button is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    await user.click(screen.getByLabelText("Previous week"));
+    // Should now show Mar 2 (Mon of previous week)
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText(/Mar 2/)).toBeInTheDocument();
+  });
+
+  it("navigates to next week when next button is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    await user.click(screen.getByLabelText("Next week"));
+    // Should now show Mar 16 (Mon of next week)
+    expect(screen.getByText("16")).toBeInTheDocument();
+  });
+
+  it("returns to today when Today button is clicked after navigating", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    // Navigate forward
+    await user.click(screen.getByLabelText("Next week"));
+    // Click today
+    await user.click(screen.getByText("Today"));
+    // Should show the current week's Monday based on actual date
+    const today = new Date();
+    expect(screen.getByText(String(today.getDate()))).toBeInTheDocument();
+  });
+
+  it("shows quick-add form when a day header is clicked", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    // Click on Monday (day 9) header area
+    await user.click(screen.getByText("9"));
+    expect(screen.getByText("Quick add")).toBeInTheDocument();
+  });
+
+  it("hides quick-add when the same day is clicked again", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    await user.click(screen.getByText("9"));
+    expect(screen.getByText("Quick add")).toBeInTheDocument();
+    await user.click(screen.getByText("9"));
+    expect(screen.queryByText("Quick add")).not.toBeInTheDocument();
+  });
+
+  it("hides quick-add when navigating weeks", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<WeeklyCalendar {...baseProps} />);
+    await user.click(screen.getByText("9"));
+    expect(screen.getByText("Quick add")).toBeInTheDocument();
+    await user.click(screen.getByLabelText("Next week"));
+    expect(screen.queryByText("Quick add")).not.toBeInTheDocument();
   });
 });
