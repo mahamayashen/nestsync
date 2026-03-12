@@ -1,10 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import {
-  computeRecurrenceDates,
-  computeScheduledDates,
-  formatDateForDB,
-  getWeekBounds,
-} from "./instance-generator";
+import { computeRecurrenceDates, formatDateForDB } from "./instance-generator";
 import type { Recurrence } from "@/types";
 
 export type ChoreInstanceRow = {
@@ -24,7 +19,6 @@ export type ChoreTemplateRow = {
   description: string | null;
   points: number;
   recurrence: string;
-  schedule_days: number[] | null;
   assigned_member: { id: string; users: { display_name: string } } | null;
   creator: { id: string; users: { display_name: string } } | null;
 };
@@ -368,39 +362,33 @@ export async function getTodayProgress(
 }
 
 /**
- * Ensure chore instances exist for a natural week (Mon–Sun) for all active
- * recurring templates. By default generates for the current week; pass a
- * weekStartOverride (YYYY-MM-DD Monday string) to generate for a different
- * week (used by the calendar when navigating to future weeks).
+ * Ensure pending chore instances exist for the next 7 days for all active
+ * recurring templates. Also cancels any pending instances beyond the 7-day
+ * window (cleanup from the old 30-day generation).
  *
  * Safe to call on every page load — skips dates that already have a pending
- * or completed instance, and the partial unique index prevents races.
+ * instance and the partial unique index prevents races.
  */
-export async function ensureWeekInstances(
-  householdId: string,
-  weekStartOverride?: string
-): Promise<void> {
+export async function replenishInstances(householdId: string): Promise<void> {
   const supabase = await createClient();
 
-  // Compute Mon–Sun bounds for the target week
-  const refDate = weekStartOverride
-    ? new Date(weekStartOverride + "T00:00:00")
-    : undefined;
-  const { monday, sunday } = getWeekBounds(refDate);
-  const mondayStr = formatDateForDB(monday);
-  const sundayStr = formatDateForDB(sunday);
+  const today = new Date();
+  const todayStr = formatDateForDB(today);
+  const sevenDaysOut = new Date();
+  sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+  const sevenDaysStr = formatDateForDB(sevenDaysOut);
 
   // 1. Fetch active recurring templates
   const { data: templates } = await supabase
     .from("chore_templates")
-    .select("id, title, points, recurrence, assigned_to, schedule_days")
+    .select("id, title, points, recurrence, assigned_to")
     .eq("household_id", householdId)
     .is("deleted_at", null)
     .neq("recurrence", "one_time");
 
   if (!templates || templates.length === 0) return;
 
-  // 2. Fetch existing instances (pending OR completed) in this week.
+  // 2. Fetch existing instances (pending OR completed) in the 7-day window.
   //    We must include completed instances so we don't re-create a chore
   //    for a date that was already fulfilled.
   const templateIds = templates.map((t) => t.id);
@@ -410,15 +398,15 @@ export async function ensureWeekInstances(
     .eq("household_id", householdId)
     .in("status", ["pending", "completed"])
     .in("template_id", templateIds)
-    .gte("due_date", mondayStr)
-    .lte("due_date", sundayStr);
+    .gte("due_date", todayStr)
+    .lte("due_date", sevenDaysStr);
 
   // Build a set of "templateId:dueDate" for quick lookup
   const existingSet = new Set(
     (existingInstances ?? []).map((i) => `${i.template_id}:${i.due_date}`)
   );
 
-  // 3. Compute missing instances for the week
+  // 3. Compute missing instances
   const toInsert: {
     template_id: string;
     household_id: string;
@@ -430,11 +418,11 @@ export async function ensureWeekInstances(
   }[] = [];
 
   for (const template of templates) {
-    // Prefer schedule_days when present; fall back to legacy recurrence
-    const dates =
-      template.schedule_days && template.schedule_days.length > 0
-        ? computeScheduledDates(template.schedule_days, monday, sunday)
-        : computeRecurrenceDates(template.recurrence as Recurrence, monday, sunday);
+    const dates = computeRecurrenceDates(
+      template.recurrence as Recurrence,
+      today,
+      sevenDaysOut
+    );
 
     for (const date of dates) {
       const dateStr = formatDateForDB(date);
@@ -457,4 +445,13 @@ export async function ensureWeekInstances(
   if (toInsert.length > 0) {
     await supabase.from("chore_instances").insert(toInsert);
   }
+
+  // 5. Cancel pending instances beyond the 7-day window (cleanup old 30-day data)
+  await supabase
+    .from("chore_instances")
+    .update({ status: "cancelled" as const })
+    .eq("household_id", householdId)
+    .eq("status", "pending")
+    .in("template_id", templateIds)
+    .gt("due_date", sevenDaysStr);
 }

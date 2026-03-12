@@ -19,11 +19,6 @@
 
   --color-highlight: #D97D55;
   --color-highlight-light: #D97D551A;
-  --color-highlight-medium: #D97D5533;
-
-  --color-sage-light: #B8C4A91A;
-  --color-sage-medium: #B8C4A933;
-  --color-sage-solid: #B8C4A9;
 
   --color-surface: #FFFFFF;
   --color-surface-secondary: #B8C4A926;
@@ -61,11 +56,6 @@
 
   --color-highlight: var(--color-highlight);
   --color-highlight-light: var(--color-highlight-light);
-  --color-highlight-medium: var(--color-highlight-medium);
-
-  --color-sage-light: var(--color-sage-light);
-  --color-sage-medium: var(--color-sage-medium);
-  --color-sage-solid: var(--color-sage-solid);
 
   --color-surface: var(--color-surface);
   --color-surface-secondary: var(--color-surface-secondary);

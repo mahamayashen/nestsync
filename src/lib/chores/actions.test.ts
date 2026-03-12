@@ -32,10 +32,6 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-vi.mock("./queries", () => ({
-  ensureWeekInstances: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Import after mocks
 import {
   createChoreTemplate,

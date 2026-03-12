@@ -20,7 +20,7 @@ export default async function NewChorePage() {
         </p>
       </div>
 
-      <CreateChoreForm members={members} currentMemberId={membership.memberId} />
+      <CreateChoreForm members={members} />
     </div>
   );
 }
