@@ -411,6 +411,15 @@ Not implemented. Database schema exists but no application code.
 - [ ] Complete documentation
 - [ ] Deploy to Vercel + Supabase hosted
 
+### Known Discrepancies (Debug Branch)
+
+| Issue | Severity | Detail |
+|---|---|---|
+| **Prisma schema out of sync** | Medium | `schedule_days SMALLINT[]` column exists in DB (migration #3) but is missing from `prisma/schema.prisma`. No corresponding Prisma migration folder. Prisma client cannot access this column. |
+| **`users` RLS pattern inconsistency** | Low | `users_select_household_members` still uses the old recursive subquery pattern (not updated to use `get_my_household_ids()`). Works because it queries the fixed `household_members` table, but is stylistically inconsistent. |
+| **No `admin_history` write RLS policies** | Low | Only SELECT policy exists. Writes happen via service role (server actions), so this is correct behavior but undocumented. |
+| **No DELETE RLS policies on most tables** | Info | By design — app uses soft deletes (`deleted_at`/`left_at`). Only `announcement_reactions` has a DELETE policy. |
+
 ### Post-Deploy (v1.1+)
 
 - [ ] Invite preview screen (show household name + member count before joining)
