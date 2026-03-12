@@ -77,9 +77,6 @@ export function QuickAddChore({
         {/* Hidden fields */}
         <input type="hidden" name="recurrence" value="one_time" />
         <input type="hidden" name="dueDate" value={date} />
-        {currentRole !== "admin" && (
-          <input type="hidden" name="assignedTo" value={currentMemberId} />
-        )}
 
         <input
           ref={inputRef}
@@ -101,19 +98,24 @@ export function QuickAddChore({
           />
           <span className="self-center text-xs text-text-muted">pts</span>
 
-          {currentRole === "admin" && (
-            <select
-              name="assignedTo"
-              defaultValue={currentMemberId}
-              className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-border text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-surface"
-            >
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.users.display_name}
-                </option>
-              ))}
-            </select>
-          )}
+          {/* Assignee: always render select (hidden for non-admin) so value is reliably submitted */}
+          <select
+            name="assignedTo"
+            defaultValue={currentMemberId}
+            className={
+              currentRole === "admin"
+                ? "flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-border text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-surface"
+                : "sr-only"
+            }
+            aria-hidden={currentRole !== "admin"}
+            tabIndex={currentRole !== "admin" ? -1 : undefined}
+          >
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.users.display_name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <button
