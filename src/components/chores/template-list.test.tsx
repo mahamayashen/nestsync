@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
 import { TemplateList } from "./template-list";
 import { renderWithProviders } from "@/test/helpers";
 
-// Mock useSupabase — return a chain that never resolves so initialData is used
+// Hoisted mutable resolver so individual tests can control query resolution
+const { mockThenImpl } = vi.hoisted(() => ({
+  mockThenImpl: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-supabase", () => ({
   useSupabase: () => ({
     from: () => {
@@ -13,7 +17,7 @@ vi.mock("@/hooks/use-supabase", () => ({
       chain.is = () => chain;
       chain.order = () => chain;
       Object.defineProperty(chain, "then", {
-        value: () => new Promise(() => {}),
+        value: (resolve: (val: unknown) => void) => mockThenImpl(resolve),
         writable: true,
         configurable: true,
       });
@@ -37,6 +41,13 @@ vi.mock("./template-card", () => ({
     </div>
   ),
 }));
+
+// Reset to never-resolve before each test so existing tests are unaffected
+beforeEach(() => {
+  mockThenImpl.mockImplementation(() => {
+    /* never calls resolve – initialData is used */
+  });
+});
 
 const mockTemplates = [
   {
@@ -141,5 +152,54 @@ describe("TemplateList", () => {
     );
     const cards = screen.getAllByTestId("template-card");
     expect(cards).toHaveLength(2);
+  });
+
+  // --- queryFn coverage tests ---
+
+  it("renders templates fetched from resolved query", async () => {
+    const resolvedTemplates = [
+      {
+        id: "tpl-100",
+        title: "Server Template",
+        description: "From server",
+        points: 3,
+        recurrence: "weekly",
+        assigned_member: null,
+        creator: { id: "member-1", users: { display_name: "Alice" } },
+      },
+    ];
+    mockThenImpl.mockImplementation((resolve: (val: unknown) => void) =>
+      resolve({ data: resolvedTemplates })
+    );
+    renderWithProviders(
+      <TemplateList
+        initialTemplates={[]}
+        currentMemberId="member-1"
+        memberRole="admin"
+        membersCanEditOwnChores={true}
+        householdId="h-001"
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Server Template")).toBeInTheDocument();
+    });
+  });
+
+  it("falls back to empty array and shows empty state when query returns null", async () => {
+    mockThenImpl.mockImplementation((resolve: (val: unknown) => void) =>
+      resolve({ data: null })
+    );
+    renderWithProviders(
+      <TemplateList
+        initialTemplates={[]}
+        currentMemberId="member-1"
+        memberRole="admin"
+        membersCanEditOwnChores={true}
+        householdId="h-001"
+      />
+    );
+    await waitFor(() => {
+      expect(screen.getByText("No chore templates yet")).toBeInTheDocument();
+    });
   });
 });

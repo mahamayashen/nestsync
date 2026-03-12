@@ -8,13 +8,18 @@ vi.mock("@/lib/chores/actions", () => ({
   completeChore: vi.fn(),
 }));
 
-const today = new Date().toISOString().split("T")[0];
+// Use local date (matching the component's date computation)
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const today = localDateStr(new Date());
 
 // Helper to create a date string offset from today
 function dateOffset(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return localDateStr(d);
 }
 
 const baseInstance = {

@@ -1,11 +1,22 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { CreateChoreForm } from "./create-chore-form";
 
-// Mock server action
-vi.mock("@/lib/chores/actions", () => ({
-  createChoreTemplate: vi.fn(),
+// Hoisted mock so individual tests can control the return value
+const { mockCreateChoreTemplate } = vi.hoisted(() => ({
+  mockCreateChoreTemplate: vi.fn(),
 }));
+
+vi.mock("@/lib/chores/actions", () => ({
+  createChoreTemplate: (...args: unknown[]) =>
+    mockCreateChoreTemplate(...args),
+}));
+
+beforeEach(() => {
+  // Default: action resolves to undefined → state stays as {}
+  mockCreateChoreTemplate.mockResolvedValue(undefined);
+});
 
 const mockMembers = [
   { id: "member-1", user_id: "u1", household_id: "h1", role: "admin", joined_at: "", users: { display_name: "Alice", avatar_url: null } },
@@ -85,5 +96,20 @@ describe("CreateChoreForm", () => {
   it("does not show error message on initial render", () => {
     render(<CreateChoreForm members={mockMembers} />);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows error alert when createChoreTemplate returns an error", async () => {
+    mockCreateChoreTemplate.mockResolvedValue({
+      error: "Failed to create chore template",
+    });
+    const user = userEvent.setup();
+    render(<CreateChoreForm members={mockMembers} />);
+    await user.click(screen.getByRole("button", { name: /create chore/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText("Failed to create chore template")
+    ).toBeInTheDocument();
   });
 });

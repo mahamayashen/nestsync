@@ -3,51 +3,47 @@ import { getCurrentMembership } from "@/lib/household/queries";
 import { createClient } from "@/lib/supabase/server";
 import {
   getChoreInstances,
-  getWeeklyChoreStats,
   replenishInstances,
-  getTodayProgress,
   getCompletionStreak,
+  getOnTimeRate,
+  getWeekComparison,
 } from "@/lib/chores/queries";
-import { DashboardHome } from "@/components/dashboard/dashboard-home";
+import { MyPageDashboard } from "@/components/my-page/my-page-dashboard";
 
-export default async function DashboardPage() {
+export default async function MyPage() {
   const membership = await getCurrentMembership();
   if (!membership) redirect("/login");
 
   const supabase = await createClient();
-
   const { data: user } = await supabase
     .from("users")
     .select("display_name")
     .eq("id", membership.userId)
     .single();
 
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-
-  // Ensure rolling 7-day window is filled, then fetch data
+  // Ensure rolling 7-day window is filled
   await replenishInstances(membership.householdId);
 
-  const [todayInstances, weeklyStats, todayProgress, householdStreak] =
+  const [myPendingChores, myStreak, onTimeRate, weekComparison] =
     await Promise.all([
       getChoreInstances(membership.householdId, {
         status: "pending",
-        dateFrom: today,
-        dateTo: today,
+        assignedTo: membership.memberId,
       }),
-      getWeeklyChoreStats(membership.householdId),
-      getTodayProgress(membership.householdId),
-      getCompletionStreak(membership.householdId),
+      getCompletionStreak(membership.householdId, membership.memberId),
+      getOnTimeRate(membership.householdId, membership.memberId),
+      getWeekComparison(membership.householdId, membership.memberId),
     ]);
 
   return (
-    <DashboardHome
+    <MyPageDashboard
       userName={user?.display_name ?? "User"}
       householdId={membership.householdId}
-      todayChores={todayInstances}
-      weeklyStats={weeklyStats}
-      todayProgress={todayProgress}
-      householdStreak={householdStreak}
+      currentMemberId={membership.memberId}
+      myPendingChores={myPendingChores}
+      myStreak={myStreak}
+      onTimeRate={onTimeRate}
+      weekComparison={weekComparison}
     />
   );
 }

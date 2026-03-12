@@ -68,4 +68,35 @@ describe("TopBar", () => {
     await user.click(screen.getByText("Invite"));
     expect(writeText).toHaveBeenCalledWith("ABC12345");
   });
+
+  it("shows 'Copied!' after copying invite code", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+
+    render(<TopBar {...defaultProps} />);
+    await user.click(screen.getByText("Invite"));
+    // After successful copy, button text changes
+    expect(screen.getByText("Copied!")).toBeInTheDocument();
+  });
+
+  it("silently handles clipboard API failure", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockRejectedValue(new Error("Permission denied"));
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      writable: true,
+      configurable: true,
+    });
+
+    render(<TopBar {...defaultProps} />);
+    // Should not throw
+    await user.click(screen.getByText("Invite"));
+    // Invite button should still say "Invite" (not "Copied!")
+    expect(screen.getByText("Invite")).toBeInTheDocument();
+  });
 });

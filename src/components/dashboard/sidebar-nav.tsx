@@ -5,27 +5,19 @@ import { usePathname } from "next/navigation";
 import type { Icon } from "@phosphor-icons/react";
 import {
   House,
-  ClipboardText,
-  CurrencyDollar,
+  UserCircle,
+  UsersThree,
+  CalendarDots,
   Megaphone,
   Scales,
 } from "@phosphor-icons/react";
 
 const navItems: { href: string; label: string; icon: Icon; enabled: boolean }[] = [
   { href: "/dashboard", label: "Home", icon: House, enabled: true },
-  {
-    href: "/dashboard/chores",
-    label: "Chores",
-    icon: ClipboardText,
-    enabled: true,
-  },
-  {
-    href: "/dashboard/expenses",
-    label: "Expenses",
-    icon: CurrencyDollar,
-    enabled: false,
-  },
-  { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: false },
+  { href: "/dashboard/my", label: "My Page", icon: UserCircle, enabled: true },
+  { href: "/dashboard/household", label: "Household", icon: UsersThree, enabled: true },
+  { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDots, enabled: true },
+  { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: true },
   { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: false },
 ];
 
