@@ -73,11 +73,14 @@ describe("QuickAddChore", () => {
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });
 
-  it("hides member select for non-admin role", () => {
+  it("hides member select visually for non-admin role", () => {
     render(
       <QuickAddChore {...defaultProps} currentRole="member" currentMemberId="m2" />
     );
-    expect(screen.queryByText("Alice")).not.toBeInTheDocument();
+    // Select is still in DOM (for form submission) but visually hidden with sr-only
+    const select = screen.getByRole("combobox", { hidden: true });
+    expect(select).toHaveAttribute("aria-hidden", "true");
+    expect(select.className).toContain("sr-only");
   });
 
   it("calls onClose when close button is clicked", async () => {

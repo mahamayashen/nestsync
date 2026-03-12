@@ -23,23 +23,38 @@ type ActionResult = { error?: string; success?: boolean };
 async function insertChoreTemplate(
   formData: FormData
 ): Promise<ActionResult> {
+  // Resolve assignedTo: prefer explicit form field, fall back to current member
+  const membership = await getCurrentMembership();
+  if (!membership) return { error: "Not authenticated" };
+
+  const rawAssignedTo = formData.get("assignedTo");
+  const assignedTo =
+    typeof rawAssignedTo === "string" && rawAssignedTo.length > 0
+      ? rawAssignedTo
+      : membership.memberId; // self-assign as fallback
+
   const rawScheduleDays = formData.getAll("scheduleDays");
   const parsed = createChoreTemplateSchema.safeParse({
     title: formData.get("title"),
-    description: formData.get("description"),
+    description: formData.get("description") ?? undefined,
     points: formData.get("points"),
     recurrence: formData.get("recurrence"),
     scheduleDays: rawScheduleDays.length > 0 ? rawScheduleDays : null,
     dueDate: formData.get("dueDate") || null,
-    assignedTo: formData.get("assignedTo"),
+    assignedTo,
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    const messages = parsed.error.issues.map((i) => i.message).join("; ");
+    console.error("Chore validation failed:", messages, {
+      title: formData.get("title"),
+      recurrence: formData.get("recurrence"),
+      assignedTo,
+      dueDate: formData.get("dueDate"),
+      scheduleDays: rawScheduleDays,
+    });
+    return { error: messages };
   }
-
-  const membership = await getCurrentMembership();
-  if (!membership) return { error: "Not authenticated" };
 
   const supabase = await createClient();
 
@@ -49,6 +64,9 @@ async function insertChoreTemplate(
       : null;
 
   // 1. Insert the template
+  // Note: schedule_days is omitted from the PostgREST insert because the
+  // column was added after the initial schema and may not be in the schema
+  // cache. We use the parsed form data directly for instance generation.
   const { data: template, error: templateError } = await supabase
     .from("chore_templates")
     .insert({
@@ -57,31 +75,35 @@ async function insertChoreTemplate(
       description: parsed.data.description || null,
       points: parsed.data.points,
       recurrence: parsed.data.recurrence,
-      schedule_days: scheduleDays,
       assigned_to: parsed.data.assignedTo,
       created_by: membership.memberId,
     })
-    .select("id, title, points, recurrence, assigned_to, schedule_days")
+    .select("id, title, points, recurrence, assigned_to")
     .single();
 
   if (templateError || !template) {
-    return { error: "Failed to create chore template. Please try again." };
+    console.error("Chore template insert error:", templateError);
+    return {
+      error: templateError?.message
+        ? `Create failed: ${templateError.message}`
+        : "Failed to create chore template. Please try again.",
+    };
   }
 
-  // 2. Generate instances
+  // 2. Generate instances (use parsed form data, not template row)
   const today = new Date();
   const { sunday } = getWeekBounds(today);
 
   let dates: Date[];
-  if (template.recurrence === "one_time") {
+  if (parsed.data.recurrence === "one_time") {
     const oneTimeDate = parsed.data.dueDate
       ? new Date(parsed.data.dueDate + "T00:00:00")
       : today;
     dates = [oneTimeDate];
-  } else if (template.schedule_days && template.schedule_days.length > 0) {
-    dates = computeScheduledDates(template.schedule_days, today, sunday);
+  } else if (scheduleDays && scheduleDays.length > 0) {
+    dates = computeScheduledDates(scheduleDays, today, sunday);
   } else {
-    dates = computeRecurrenceDates(template.recurrence, today, sunday);
+    dates = computeRecurrenceDates(parsed.data.recurrence, today, sunday);
   }
 
   if (dates.length > 0) {

@@ -393,7 +393,7 @@ export async function ensureWeekInstances(
   // 1. Fetch active recurring templates
   const { data: templates } = await supabase
     .from("chore_templates")
-    .select("id, title, points, recurrence, assigned_to, schedule_days")
+    .select("id, title, points, recurrence, assigned_to")
     .eq("household_id", householdId)
     .is("deleted_at", null)
     .neq("recurrence", "one_time");
@@ -430,10 +430,13 @@ export async function ensureWeekInstances(
   }[] = [];
 
   for (const template of templates) {
-    // Prefer schedule_days when present; fall back to legacy recurrence
+    // schedule_days column may not be in PostgREST schema cache yet;
+    // fall back to recurrence-based logic for instance generation
+    const sd = (template as Record<string, unknown>).schedule_days;
+    const scheduleDaysArr = Array.isArray(sd) ? (sd as number[]) : null;
     const dates =
-      template.schedule_days && template.schedule_days.length > 0
-        ? computeScheduledDates(template.schedule_days, monday, sunday)
+      scheduleDaysArr && scheduleDaysArr.length > 0
+        ? computeScheduledDates(scheduleDaysArr, monday, sunday)
         : computeRecurrenceDates(template.recurrence as Recurrence, monday, sunday);
 
     for (const date of dates) {

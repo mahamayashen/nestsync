@@ -191,7 +191,7 @@ describe("createChoreTemplate", () => {
     );
     const result = await createChoreTemplate(validFormData());
     expect(result).toEqual(
-      expect.objectContaining({ error: expect.stringContaining("Failed") })
+      expect.objectContaining({ error: expect.stringContaining("DB error") })
     );
   });
 

@@ -15,6 +15,7 @@ interface CreateChoreFormProps {
 
 export function CreateChoreForm({ members, currentMemberId }: CreateChoreFormProps) {
   const [mode, setMode] = useState<"one_time" | "recurring">("recurring");
+  const [assignee, setAssignee] = useState(currentMemberId);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(
     new Set([1, 2, 3, 4, 5, 6, 0]) // all days by default
   );
@@ -151,7 +152,8 @@ export function CreateChoreForm({ members, currentMemberId }: CreateChoreFormPro
         <select
           id="chore-assignee"
           name="assignedTo"
-          defaultValue={currentMemberId}
+          value={assignee}
+          onChange={(e) => setAssignee(e.target.value)}
           className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow bg-surface"
         >
           {members.map((member) => (
