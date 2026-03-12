@@ -9,7 +9,6 @@ vi.mock("@/lib/auth/actions", () => ({
 }));
 
 const defaultProps = {
-  householdName: "Test Household",
   inviteCode: "ABC12345",
   userName: "Alice",
   avatarUrl: null as string | null,
@@ -17,11 +16,6 @@ const defaultProps = {
 };
 
 describe("TopBar", () => {
-  it("renders household name", () => {
-    render(<TopBar {...defaultProps} />);
-    expect(screen.getByText("Test Household")).toBeInTheDocument();
-  });
-
   it("renders user name", () => {
     render(<TopBar {...defaultProps} />);
     expect(screen.getByText("Alice")).toBeInTheDocument();

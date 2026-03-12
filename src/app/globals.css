@@ -91,6 +91,7 @@
   --font-sans: var(--font-inter);
   --font-heading: var(--font-nunito);
   --font-logo: var(--font-satisfy);
+  --font-handwritten: var(--font-handwritten);
   --font-mono: var(--font-geist-mono);
 }
 

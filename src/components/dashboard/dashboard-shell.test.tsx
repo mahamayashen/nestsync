@@ -3,6 +3,22 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DashboardShell } from "./dashboard-shell";
 
+// Mock next/link
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement("a", { href, ...props }, children);
+  },
+}));
+
 // Mock sub-components to isolate testing
 vi.mock("./sidebar-nav", () => ({
   SidebarNav: ({ onNavigate }: { onNavigate: () => void }) => (
@@ -14,16 +30,13 @@ vi.mock("./sidebar-nav", () => ({
 
 vi.mock("./top-bar", () => ({
   TopBar: ({
-    householdName,
     userName,
     onMenuToggle,
   }: {
-    householdName: string;
     userName: string;
     onMenuToggle: () => void;
   }) => (
     <div data-testid="top-bar">
-      <span>{householdName}</span>
       <span>{userName}</span>
       <button onClick={onMenuToggle} aria-label="toggle menu">
         Menu

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Nunito, Satisfy, Geist_Mono } from "next/font/google";
+import { Inter, Nunito, Satisfy, Patrick_Hand, Geist_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -16,6 +16,12 @@ const nunito = Nunito({
 
 const satisfy = Satisfy({
   variable: "--font-satisfy",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const patrickHand = Patrick_Hand({
+  variable: "--font-handwritten",
   subsets: ["latin"],
   weight: "400",
 });
@@ -38,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${nunito.variable} ${satisfy.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${nunito.variable} ${satisfy.variable} ${patrickHand.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

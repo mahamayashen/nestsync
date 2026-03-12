@@ -28,23 +28,24 @@ describe("SidebarNav", () => {
   it("renders all nav items", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
-    expect(screen.getByText("Home")).toBeInTheDocument();
     expect(screen.getByText("My Page")).toBeInTheDocument();
-    expect(screen.getByText("Household")).toBeInTheDocument();
     expect(screen.getByText("Calendar")).toBeInTheDocument();
     expect(screen.getByText("Feed")).toBeInTheDocument();
     expect(screen.getByText("Votes")).toBeInTheDocument();
   });
 
+  it("does not render Home or Household nav items", () => {
+    mockPathname.mockReturnValue("/dashboard");
+    render(<SidebarNav />);
+    expect(screen.queryByText("Home")).toBeNull();
+    expect(screen.queryByText("Household")).toBeNull();
+  });
+
   it("renders all items as links", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
-    const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink).toHaveAttribute("href", "/dashboard");
     const myPageLink = screen.getByText("My Page").closest("a");
     expect(myPageLink).toHaveAttribute("href", "/dashboard/my");
-    const householdLink = screen.getByText("Household").closest("a");
-    expect(householdLink).toHaveAttribute("href", "/dashboard/household");
     const calendarLink = screen.getByText("Calendar").closest("a");
     expect(calendarLink).toHaveAttribute("href", "/dashboard/calendar");
     const votesLink = screen.getByText("Votes").closest("a");
@@ -57,20 +58,11 @@ describe("SidebarNav", () => {
     expect(screen.queryByText("Soon")).toBeNull();
   });
 
-  it("highlights Home when on /dashboard", () => {
-    mockPathname.mockReturnValue("/dashboard");
-    render(<SidebarNav />);
-    const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).toContain("bg-sage-medium");
-  });
-
   it("highlights My Page when on /dashboard/my", () => {
     mockPathname.mockReturnValue("/dashboard/my");
     render(<SidebarNav />);
     const myPageLink = screen.getByText("My Page").closest("a");
     expect(myPageLink?.className).toContain("bg-sage-medium");
-    const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink?.className).not.toContain("bg-sage-medium");
   });
 
   it("highlights Calendar when on /dashboard/calendar", () => {
@@ -84,7 +76,7 @@ describe("SidebarNav", () => {
     mockPathname.mockReturnValue("/dashboard");
     const onNavigate = vi.fn();
     render(<SidebarNav onNavigate={onNavigate} />);
-    const homeLink = screen.getByText("Home").closest("a");
-    expect(homeLink).toHaveAttribute("href", "/dashboard");
+    const myPageLink = screen.getByText("My Page").closest("a");
+    expect(myPageLink).toHaveAttribute("href", "/dashboard/my");
   });
 });

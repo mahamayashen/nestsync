@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { X } from "@phosphor-icons/react";
 import { SidebarNav } from "./sidebar-nav";
 import { TopBar } from "./top-bar";
@@ -33,33 +34,38 @@ export function DashboardShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-surface/90 backdrop-blur-sm border-r border-border-light transform transition-transform lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-surface/70 backdrop-blur-md border border-border-light transform transition-transform lg:translate-x-0 lg:sticky lg:top-0 lg:z-auto lg:rounded-2xl lg:m-3 lg:h-[calc(100vh-1.5rem)] lg:shadow-lg ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full lg:h-screen">
-          {/* Sidebar header */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-border-light">
-            <div className="flex items-center gap-2">
+        <div className="flex flex-col h-full">
+          {/* Sidebar header: logo + household */}
+          <div className="px-4 pt-5 pb-4 border-b border-border-light/60">
+            <div className="flex items-center justify-between">
               <span className="font-logo text-2xl text-primary">NestSync</span>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden p-1 rounded text-text-muted hover:text-text-secondary"
+                aria-label="Close sidebar"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded text-text-muted hover:text-text-secondary"
-              aria-label="Close sidebar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Household name */}
-          <div className="px-4 py-3 border-b border-border-light">
-            <p className="text-xs text-text-muted uppercase tracking-wider font-medium">
+            <p className="text-[10px] uppercase tracking-widest text-text-muted font-medium mt-3">
               Household
             </p>
-            <p className="text-sm font-medium text-text-primary truncate mt-0.5">
+            <Link
+              href="/dashboard/household"
+              onClick={() => setSidebarOpen(false)}
+              className="block truncate mt-0.5 hover:opacity-80 transition-opacity"
+              style={{
+                fontFamily: "var(--font-handwritten)",
+                color: "#7A9478",
+                fontSize: "1.35rem",
+              }}
+            >
               {household.name}
-            </p>
+            </Link>
           </div>
 
           {/* Navigation */}
@@ -68,7 +74,7 @@ export function DashboardShell({
           </div>
 
           {/* Sidebar footer */}
-          <div className="px-4 py-3 border-t border-border-light">
+          <div className="px-4 py-3 border-t border-border-light/60">
             <p className="text-xs text-text-muted truncate">
               {user.display_name} ·{" "}
               {membership.role === "admin" ? "Admin" : "Member"}
@@ -80,7 +86,6 @@ export function DashboardShell({
       {/* Main content */}
       <div className="flex-1 min-w-0">
         <TopBar
-          householdName={household.name}
           inviteCode={household.invite_code}
           userName={user.display_name}
           avatarUrl={user.avatar_url}

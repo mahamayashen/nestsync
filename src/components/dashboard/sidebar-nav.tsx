@@ -4,18 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Icon } from "@phosphor-icons/react";
 import {
-  House,
   UserCircle,
-  UsersThree,
   CalendarDots,
   Megaphone,
   Scales,
 } from "@phosphor-icons/react";
 
 const navItems: { href: string; label: string; icon: Icon; enabled: boolean }[] = [
-  { href: "/dashboard", label: "Home", icon: House, enabled: true },
   { href: "/dashboard/my", label: "My Page", icon: UserCircle, enabled: true },
-  { href: "/dashboard/household", label: "Household", icon: UsersThree, enabled: true },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDots, enabled: true },
   { href: "/dashboard/feed", label: "Feed", icon: Megaphone, enabled: true },
   { href: "/dashboard/votes", label: "Votes", icon: Scales, enabled: true },
@@ -27,10 +23,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="space-y-1">
       {navItems.map((item) => {
-        const isActive =
-          item.href === "/dashboard"
-            ? pathname === "/dashboard"
-            : pathname.startsWith(item.href);
+        const isActive = pathname.startsWith(item.href);
 
         if (!item.enabled) {
           return (
