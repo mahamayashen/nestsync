@@ -125,7 +125,7 @@ describe("evaluateProposalOutcome", () => {
     });
 
     it("handles large household", () => {
-      const votes = Array.from({ length: 6 }, () => ({ vote: "yes" as const }));
+      const votes: { vote: "yes" | "no" }[] = Array.from({ length: 6 }, () => ({ vote: "yes" as const }));
       votes.push(
         ...Array.from({ length: 4 }, () => ({ vote: "no" as const }))
       );
