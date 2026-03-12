@@ -7,7 +7,6 @@ import { Copy, Check, SignOut, List } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/actions";
 
 interface TopBarProps {
-  householdName: string;
   inviteCode: string;
   userName: string;
   avatarUrl: string | null;
@@ -24,7 +23,6 @@ function getInitials(name: string): string {
 }
 
 export function TopBar({
-  householdName,
   inviteCode,
   userName,
   avatarUrl,
@@ -43,7 +41,7 @@ export function TopBar({
   };
 
   return (
-    <header className="h-16 border-b border-border-light bg-surface flex items-center justify-between px-4 lg:px-6">
+    <header className="h-16 border border-border-light bg-surface/70 backdrop-blur-md flex items-center justify-between px-4 lg:px-6 lg:rounded-2xl lg:mx-3 lg:mt-3 lg:shadow-lg">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
@@ -52,9 +50,6 @@ export function TopBar({
         >
           <List className="w-5 h-5" />
         </button>
-        <h2 className="text-sm font-semibold text-text-primary hidden sm:block">
-          {householdName}
-        </h2>
       </div>
 
       <div className="flex items-center gap-2">
