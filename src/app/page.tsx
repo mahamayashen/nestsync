@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -6,6 +7,8 @@ import {
   Scales,
   Megaphone,
 } from "@phosphor-icons/react/dist/ssr";
+import { createClient } from "@/lib/supabase/server";
+import { getPostAuthRedirect } from "@/lib/auth/redirect";
 
 const features = [
   {
@@ -34,7 +37,18 @@ const features = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // Redirect authenticated users to dashboard or onboarding
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const dest = await getPostAuthRedirect();
+    redirect(dest);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}

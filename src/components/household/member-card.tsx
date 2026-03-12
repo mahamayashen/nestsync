@@ -25,9 +25,9 @@ export function MemberCard({
   const initial = name.charAt(0).toUpperCase();
 
   return (
-    <div className="bg-surface rounded-xl border border-border-light p-5">
+    <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-sage-solid/15 p-5 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center text-primary font-bold text-sm">
+        <div className="w-10 h-10 rounded-full bg-sage-medium flex items-center justify-center text-primary font-bold text-sm">
           {initial}
         </div>
         <div className="flex-1 min-w-0">

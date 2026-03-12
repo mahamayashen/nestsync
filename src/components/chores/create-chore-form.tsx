@@ -1,23 +1,50 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useActionState } from "react";
 import Link from "next/link";
 import { createChoreTemplate } from "@/lib/chores/actions";
 import { FormField } from "@/components/ui/form-field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { DayOfWeekPicker } from "./day-of-week-picker";
 import type { HouseholdMemberWithUser } from "@/lib/household/members";
 
 interface CreateChoreFormProps {
   members: HouseholdMemberWithUser[];
+  currentMemberId: string;
 }
 
-export function CreateChoreForm({ members }: CreateChoreFormProps) {
+export function CreateChoreForm({ members, currentMemberId }: CreateChoreFormProps) {
+  const [mode, setMode] = useState<"one_time" | "recurring">("recurring");
+  const [selectedDays, setSelectedDays] = useState<Set<number>>(
+    new Set([1, 2, 3, 4, 5, 6, 0]) // all days by default
+  );
+
   const [state, formAction] = useActionState(
     async (_prev: { error?: string }, formData: FormData) => {
       return (await createChoreTemplate(formData)) ?? {};
     },
     {}
   );
+
+  const handleToggleDay = (day: number) => {
+    setSelectedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) {
+        next.delete(day);
+      } else {
+        next.add(day);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedDays(new Set([0, 1, 2, 3, 4, 5, 6]));
+  };
+
+  const handleSelectWeekdays = () => {
+    setSelectedDays(new Set([1, 2, 3, 4, 5]));
+  };
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -56,35 +83,62 @@ export function CreateChoreForm({ members }: CreateChoreFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          id="chore-points"
-          label="Points"
-          type="number"
-          name="points"
-          defaultValue="1"
-          required
-        />
+      <FormField
+        id="chore-points"
+        label="Points"
+        type="number"
+        name="points"
+        defaultValue="1"
+        required
+      />
 
-        <div className="space-y-1.5">
-          <label
-            htmlFor="chore-recurrence"
-            className="block text-sm font-medium text-text-primary"
+      {/* Schedule type toggle */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-text-primary">
+          Schedule
+        </label>
+        <div className="flex gap-1 bg-surface-secondary p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setMode("one_time")}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === "one_time"
+                ? "bg-surface text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
           >
-            Recurrence
-          </label>
-          <select
-            id="chore-recurrence"
-            name="recurrence"
-            defaultValue="weekly"
-            className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow bg-surface"
+            One-time
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("recurring")}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+              mode === "recurring"
+                ? "bg-surface text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
           >
-            <option value="one_time">One-time</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
+            Recurring
+          </button>
         </div>
+
+        {mode === "one_time" ? (
+          <>
+            <input type="hidden" name="recurrence" value="one_time" />
+            <input
+              type="date"
+              name="dueDate"
+              className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow bg-surface"
+            />
+          </>
+        ) : (
+          <DayOfWeekPicker
+            selectedDays={selectedDays}
+            onToggle={handleToggleDay}
+            onSelectAll={handleSelectAll}
+            onSelectWeekdays={handleSelectWeekdays}
+          />
+        )}
       </div>
 
       <div className="space-y-1.5">
@@ -97,7 +151,7 @@ export function CreateChoreForm({ members }: CreateChoreFormProps) {
         <select
           id="chore-assignee"
           name="assignedTo"
-          defaultValue={members[0]?.id ?? ""}
+          defaultValue={currentMemberId}
           className="w-full px-3 py-2.5 rounded-lg border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow bg-surface"
         >
           {members.map((member) => (
