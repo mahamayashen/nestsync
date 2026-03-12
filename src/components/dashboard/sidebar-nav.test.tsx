@@ -36,7 +36,7 @@ describe("SidebarNav", () => {
     expect(screen.getByText("Votes")).toBeInTheDocument();
   });
 
-  it("renders enabled items as links", () => {
+  it("renders all items as links", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
     const homeLink = screen.getByText("Home").closest("a");
@@ -47,23 +47,14 @@ describe("SidebarNav", () => {
     expect(householdLink).toHaveAttribute("href", "/dashboard/household");
     const calendarLink = screen.getByText("Calendar").closest("a");
     expect(calendarLink).toHaveAttribute("href", "/dashboard/calendar");
+    const votesLink = screen.getByText("Votes").closest("a");
+    expect(votesLink).toHaveAttribute("href", "/dashboard/votes");
   });
 
-  it("renders disabled items as non-clickable divs", () => {
+  it("does not show any 'Soon' badges when all items are enabled", () => {
     mockPathname.mockReturnValue("/dashboard");
     render(<SidebarNav />);
-    const votesEl = screen.getByText("Votes").closest("div");
-    expect(votesEl).not.toBeNull();
-    expect(votesEl?.tagName).toBe("DIV");
-    expect(screen.getByText("Votes").closest("a")).toBeNull();
-  });
-
-  it("shows 'Soon' badge for disabled items", () => {
-    mockPathname.mockReturnValue("/dashboard");
-    render(<SidebarNav />);
-    const soonBadges = screen.getAllByText("Soon");
-    // Only Votes is disabled
-    expect(soonBadges).toHaveLength(1);
+    expect(screen.queryByText("Soon")).toBeNull();
   });
 
   it("highlights Home when on /dashboard", () => {
