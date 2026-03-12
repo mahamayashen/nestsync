@@ -184,8 +184,8 @@ export function WeeklyCalendar({
                 {/* Day header — clickable for quick-add */}
                 <div
                   className={`px-2 py-2.5 text-center border-b border-border-light cursor-pointer group ${
-                    isToday ? "bg-primary-light" : "bg-surface-secondary"
-                  } hover:bg-primary-light/50 transition-colors`}
+                    isToday ? "bg-primary-light" : "bg-sage-light"
+                  } hover:bg-sage-medium transition-colors`}
                   onClick={() => handleDayClick(dateStr)}
                 >
                   <p className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
@@ -208,7 +208,7 @@ export function WeeklyCalendar({
                 </div>
 
                 {/* Events */}
-                <div className="flex-1 p-1.5 space-y-1 min-h-[280px] max-h-[480px] overflow-y-auto">
+                <div className="flex-1 p-1.5 space-y-1 min-h-[60vh] overflow-y-auto">
                   {showQuickAdd && (
                     <QuickAddChore
                       date={dateStr}

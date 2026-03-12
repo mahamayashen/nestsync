@@ -19,8 +19,8 @@ import { ensureWeekInstances } from "./queries";
 
 type ActionResult = { error?: string; success?: boolean };
 
-// ---- CREATE CHORE TEMPLATE ----
-export async function createChoreTemplate(
+// ---- SHARED: parse + insert chore template ----
+async function insertChoreTemplate(
   formData: FormData
 ): Promise<ActionResult> {
   const rawScheduleDays = formData.getAll("scheduleDays");
@@ -104,7 +104,23 @@ export async function createChoreTemplate(
     }
   }
 
+  return { success: true };
+}
+
+// ---- CREATE CHORE TEMPLATE (full-page form — redirects) ----
+export async function createChoreTemplate(
+  formData: FormData
+): Promise<ActionResult> {
+  const result = await insertChoreTemplate(formData);
+  if (result.error) return result;
   redirect("/dashboard/my");
+}
+
+// ---- CREATE CHORE QUICK (calendar inline — no redirect) ----
+export async function createChoreQuick(
+  formData: FormData
+): Promise<ActionResult> {
+  return insertChoreTemplate(formData);
 }
 
 // ---- COMPLETE A CHORE ----

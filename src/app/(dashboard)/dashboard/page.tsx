@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     ]);
 
   return (
+    <div className="max-w-5xl">
     <DashboardHome
       userName={user?.display_name ?? "User"}
       householdId={membership.householdId}
@@ -49,5 +50,6 @@ export default async function DashboardPage() {
       todayProgress={todayProgress}
       householdStreak={householdStreak}
     />
+    </div>
   );
 }

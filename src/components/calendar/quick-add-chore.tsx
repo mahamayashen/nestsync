@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useActionState } from "react";
-import { createChoreTemplate } from "@/lib/chores/actions";
+import { createChoreQuick } from "@/lib/chores/actions";
 import { X } from "@phosphor-icons/react";
 import type { HouseholdMemberWithUser } from "@/lib/household/members";
 
@@ -29,13 +29,15 @@ export function QuickAddChore({
 
   const [state, formAction] = useActionState(
     async (_prev: { error?: string; success?: boolean }, formData: FormData) => {
-      const result = (await createChoreTemplate(formData)) ?? {};
-      // createChoreTemplate redirects on success (throws NEXT_REDIRECT)
-      // If we get here, it was an error
-      return result;
+      return (await createChoreQuick(formData)) ?? {};
     },
     {}
   );
+
+  // Close and refresh when chore is created successfully
+  useEffect(() => {
+    if (state.success) onCreated();
+  }, [state.success, onCreated]);
 
   // Focus title input on mount
   useEffect(() => {

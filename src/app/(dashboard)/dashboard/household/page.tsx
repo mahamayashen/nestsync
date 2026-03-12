@@ -45,6 +45,7 @@ export default async function HouseholdPage() {
   const templates = isAdmin ? await getChoreTemplates(membership.householdId) : [];
 
   return (
+    <div className="max-w-5xl">
     <HouseholdDashboard
       householdId={membership.householdId}
       currentMemberId={membership.memberId}
@@ -57,5 +58,6 @@ export default async function HouseholdPage() {
       isAdmin={isAdmin}
       templates={templates}
     />
+    </div>
   );
 }

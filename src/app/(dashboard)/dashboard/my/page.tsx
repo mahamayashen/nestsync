@@ -36,6 +36,7 @@ export default async function MyPage() {
     ]);
 
   return (
+    <div className="max-w-5xl">
     <MyPageDashboard
       userName={user?.display_name ?? "User"}
       householdId={membership.householdId}
@@ -45,5 +46,6 @@ export default async function MyPage() {
       onTimeRate={onTimeRate}
       weekComparison={weekComparison}
     />
+    </div>
   );
 }
