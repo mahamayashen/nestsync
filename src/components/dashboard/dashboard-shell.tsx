@@ -33,7 +33,7 @@ export function DashboardShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-surface border-r border-border-light transform transition-transform lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-surface/90 backdrop-blur-sm border-r border-border-light transform transition-transform lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:z-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -83,9 +83,10 @@ export function DashboardShell({
           householdName={household.name}
           inviteCode={household.invite_code}
           userName={user.display_name}
+          avatarUrl={user.avatar_url}
           onMenuToggle={() => setSidebarOpen(true)}
         />
-        <main className="p-4 lg:p-6 max-w-5xl">{children}</main>
+        <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );
