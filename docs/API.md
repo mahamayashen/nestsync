@@ -43,7 +43,7 @@ Signs in a user with email and password.
 **Behavior:**
 1. Validates input with `loginSchema`
 2. Calls `supabase.auth.signInWithPassword()`
-3. On success → redirects to `/dashboard`
+3. On success → calls `getPostAuthRedirect()` to determine destination (household members → `/dashboard/household`, no membership → `/onboarding`)
 4. On failure → returns `{ error: "Invalid login credentials" }`
 
 ---
@@ -64,7 +64,7 @@ Registers a new user account.
 1. Validates input with `signupSchema`
 2. Calls `supabase.auth.signUp()` with `display_name` in metadata
 3. Auth trigger (`handle_new_user`) creates public `users` row automatically
-4. If `inviteCode` provided → calls `joinHouseholdByCode()` → redirects to `/dashboard`
+4. If `inviteCode` provided → calls `joinHouseholdByCode()` → redirects to `/dashboard/household`
 5. If no invite code → redirects to `/onboarding`
 6. On failure → returns `{ error: "..." }`
 
@@ -117,7 +117,7 @@ Creates a new household and makes the current user its admin.
 2. Inserts into `households` table
 3. Inserts into `household_members` with `role = 'admin'`
 4. Inserts into `admin_history` with `reason = 'household_created'`
-5. Redirects to `/dashboard`
+5. Redirects to `/dashboard/household`
 
 ---
 
@@ -135,7 +135,7 @@ Joins an existing household by invite code.
 2. Checks: household exists, not deleted, not at max members
 3. Checks: user is not already an active member of any household
 4. Inserts into `household_members` with `role = 'member'`
-5. Redirects to `/dashboard`
+5. Redirects to `/dashboard/household`
 
 **Error cases:**
 - `"Household not found"` — invalid invite code
@@ -152,15 +152,32 @@ Signs out the current user.
 
 ---
 
+### Post-Auth Redirect Helper
+
+**File:** `src/lib/auth/redirect.ts`
+
+#### `getPostAuthRedirect(overrideRedirect?: string | null): Promise<string>`
+
+Determines where to redirect a user after authentication.
+
+**Logic:**
+1. Not authenticated → `"/login"`
+2. Has active household membership → `overrideRedirect || "/dashboard/household"`
+3. No membership → `"/onboarding"`
+
+Used by `login()` and the OAuth callback handler (`/auth/callback/route.ts`).
+
+---
+
 ## 2. Chore Management
 
 **File:** `src/lib/chores/actions.ts`
 
 All chore actions require an authenticated user with active household membership.
 
-### `createChoreTemplate(prevState: unknown, formData: FormData): Promise<ActionResult>`
+### `createChoreTemplate(formData: FormData): Promise<ActionResult>`
 
-Creates a new chore template and generates initial instances.
+Creates a new chore template and generates initial instances. Internally calls `insertChoreTemplate()`.
 
 **Input fields:**
 | Field | Type | Required | Validation |
@@ -169,38 +186,29 @@ Creates a new chore template and generates initial instances.
 | `description` | string | ❌ | Optional text |
 | `points` | number | ✅ | Integer ≥ 1 |
 | `recurrence` | string | ✅ | `one_time`, `daily`, `weekly`, or `monthly` |
-| `assignedTo` | string | ✅ | Valid UUID (member ID) |
+| `assignedTo` | string | ❌ | Valid UUID (member ID); defaults to current member if omitted |
 | `scheduleDays` | string[] | ❌ | Array of integers 0–6 (Sun=0, Mon=1, ..., Sat=6) |
+| `dueDate` | string | ❌ | Date string (`YYYY-MM-DD`) for one-time chores |
 
 **Behavior:**
-1. Validates with `createChoreTemplateSchema`
-2. Inserts template into `chore_templates`
-3. If `scheduleDays` provided → uses `computeScheduledDates()` for next 30 days
-4. If no `scheduleDays` → uses `computeRecurrenceDates()` for next 30 days
-5. Batch-inserts instances into `chore_instances` with `ON CONFLICT DO NOTHING`
-6. Redirects to `/dashboard/chores`
-
-**Note:** This action uses `useActionState` pattern — takes `prevState` as first parameter.
+1. Falls back `assignedTo` to the current member ID if not provided (self-assign)
+2. Coerces `null` description to `undefined` (Zod `.optional()` requires `undefined`, not `null`)
+3. Validates with `createChoreTemplateSchema`
+4. Inserts template into `chore_templates` (note: `schedule_days` is omitted from the PostgREST insert to avoid schema cache issues — the parsed form data is used for instance generation instead)
+5. Generates instances for the current week: `scheduleDays` → `computeScheduledDates()`, or recurrence → `computeRecurrenceDates()`
+6. Redirects to `/dashboard/my`
 
 ---
 
 ### `createChoreQuick(formData: FormData): Promise<ActionResult>`
 
-Creates a one-time chore for a specific date (used by calendar quick-add).
+Creates a chore for the calendar (used by calendar quick-add). Internally calls the same `insertChoreTemplate()` as `createChoreTemplate` but does not redirect.
 
-**Input fields:**
-| Field | Type | Required | Validation |
-|---|---|---|---|
-| `title` | string | ✅ | Non-empty |
-| `points` | number | ✅ | Integer ≥ 1 |
-| `assignedTo` | string | ✅ | Valid UUID |
-| `date` | string | ✅ | Date string (`YYYY-MM-DD`) |
-| `householdId` | string | ✅ | Valid UUID |
+**Input fields:** Same as `createChoreTemplate` above.
 
 **Behavior:**
-1. Creates a one-time template
-2. Creates a single instance for the specified date
-3. Returns `{ success: true }`
+1. Calls `insertChoreTemplate(formData)` to create the template + instances
+2. Returns `{ success: true }` (no redirect — the calendar refreshes inline)
 
 ---
 
@@ -224,7 +232,7 @@ Marks a chore instance as completed.
 
 ### `deleteChoreTemplate(formData: FormData): Promise<ActionResult>`
 
-Soft-deletes a chore template and cancels its future pending instances.
+Soft-deletes a chore template. Pending instances survive (Design Decision D4).
 
 **Input fields:**
 | Field | Type | Required | Validation |
@@ -233,15 +241,15 @@ Soft-deletes a chore template and cancels its future pending instances.
 
 **Behavior:**
 1. Authorization check:
-   - Admin → can delete any template
-   - Member → can delete own template only if `members_can_edit_own_chores = true`
+   - Admin → skips permission check entirely (no household query needed)
+   - Member → queries household `members_can_edit_own_chores` setting, then checks template ownership
 2. Soft-deletes template (`deleted_at = NOW()`)
-3. Cancels all pending instances with `due_date >= today` (`status = 'cancelled'`)
-4. Returns `{ success: true }`
+3. Returns `{ success: true }`
 
 **Error cases:**
-- `"Permission denied"` — member lacks edit rights
-- `"You can only manage your own chore templates"` — member trying to delete another's template
+- `"Only the admin can delete chore templates"` — member lacks edit rights
+- `"You can only delete templates you created"` — member trying to delete another's template
+- `"Delete failed: <message>"` — database error with actual Supabase error surfaced
 
 ---
 
@@ -253,7 +261,7 @@ Reassigns a chore template and its future pending instances to a different membe
 | Field | Type | Required | Validation |
 |---|---|---|---|
 | `templateId` | string | ✅ | Valid UUID |
-| `newMemberId` | string | ✅ | Valid UUID |
+| `newAssignee` | string | ✅ | Valid UUID (member ID) |
 
 **Behavior:**
 1. Admin-only action
@@ -263,15 +271,14 @@ Reassigns a chore template and its future pending instances to a different membe
 
 ---
 
-### `ensureWeekInstancesAction(formData: FormData): Promise<void>`
+### `ensureWeekInstancesAction(weekStart: string): Promise<void>`
 
-Ensures chore instances exist for a given week. Called when navigating the calendar.
+Ensures chore instances exist for a given week. Called when navigating the calendar. Not a form action — takes a plain string argument.
 
-**Input fields:**
-| Field | Type | Required | Validation |
-|---|---|---|---|
-| `weekStart` | string | ✅ | Date string (`YYYY-MM-DD`) |
-| `householdId` | string | ✅ | Valid UUID |
+**Input:**
+| Parameter | Type | Description |
+|---|---|---|
+| `weekStart` | string | Date string (`YYYY-MM-DD`) — the Monday of the target week |
 
 **Behavior:**
 1. Fetches all active (non-deleted) templates for the household
@@ -504,7 +511,7 @@ Queries the `calendar_events` VIEW for a date range. Joins with member display n
 
 #### `getCurrentMembership(): Promise<CurrentMembership | null>`
 
-Returns the authenticated user's active membership (id, householdId, role, members_can_edit_own_chores setting, household name/timezone).
+Returns the authenticated user's active membership (memberId, householdId, userId, role). Returns `null` if not authenticated or not a member of any household.
 
 #### `getHouseholdMembers(householdId): Promise<HouseholdMemberWithUser[]>`
 
@@ -575,10 +582,8 @@ Standard return type for all server actions.
 type CurrentMembership = {
   memberId: string;
   householdId: string;
-  role: "admin" | "member";
-  membersCanEditOwnChores: boolean;
-  householdName: string;
-  timezone: string;
+  userId: string;
+  role: "member" | "admin";
 };
 ```
 
@@ -708,9 +713,11 @@ type ProposalWithDetails = {
 All server actions follow a consistent error pattern:
 
 ```typescript
-// Validation error
+// Validation error (with server-side logging)
 if (!parsed.success) {
-  return { error: parsed.error.errors[0].message };
+  const messages = parsed.error.issues.map((i) => i.message).join("; ");
+  console.error("Validation failed:", messages, { ...debugContext });
+  return { error: messages };
 }
 
 // Auth/membership error
@@ -724,10 +731,11 @@ if (someConditionFails) {
   return { error: "Human-readable error message" };
 }
 
-// Database error
+// Database error (actual Supabase message surfaced)
 const { error } = await supabase.from("table").insert(data);
 if (error) {
-  return { error: error.message };
+  console.error("DB operation failed:", error);
+  return { error: `Operation failed: ${error.message}` };
 }
 
 // Success

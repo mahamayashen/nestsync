@@ -39,7 +39,7 @@ Expense tracking (US-04, Issues #5 and #6) was descoped during Sprint 1 due to w
 | UI Library | React | 19.x |
 | Styling | Tailwind CSS | 4.x |
 | Icons | Phosphor Icons (`@phosphor-icons/react`) | latest |
-| Fonts | Nunito (headings), Inter (body), Satisfy (logo) | via `next/font/google` |
+| Fonts | Nunito (headings), Inter (body), Satisfy (logo), Patrick Hand (handwritten) | via `next/font/google` |
 | Server State | TanStack React Query | 5.x |
 | Backend | Next.js Server Actions (no REST API) | — |
 | Database | PostgreSQL via Supabase | latest |
@@ -69,7 +69,7 @@ Expense tracking (US-04, Issues #5 and #6) was descoped during Sprint 1 due to w
 | **Admin edit/delete any chore** | #8 | ✅ Shipped | Admin chore manager panel, reassign, delete |
 | **Proposal creation + voting** | #9 | ✅ Shipped | 3 types (elect admin, remove member, custom), live countdown |
 | **Voting history + outcomes** | #10 | ✅ Shipped | Vote progress bar, auto-resolution, quorum enforcement |
-| **README and documentation** | #11 | 🔄 In Progress | Design doc, testing guide, sprint retro done; API docs in progress |
+| **README and documentation** | #11 | ✅ Shipped | Design doc, testing guide, sprint retro, API reference, project map |
 
 ### 3.2 Features Built Beyond the PRD
 
@@ -82,7 +82,8 @@ Expense tracking (US-04, Issues #5 and #6) was descoped during Sprint 1 due to w
 | **Profile page** | Glassmorphism card with avatar/initials, role badge, sign-out |
 | **My Chores page** | Personal view filtered to the current member's assigned chores |
 | **Dashboard stats** | Rolling 7-day points, completion streaks, today's progress, week-over-week comparison |
-| **Pastel design system** | Custom color palette (teal, cream, sage, terracotta, gold), Nunito/Inter/Satisfy fonts |
+| **Pastel design system** | Custom color palette (teal, cream, sage, terracotta, gold), Nunito/Inter/Satisfy/Patrick Hand fonts |
+| **Glassmorphism UI** | Sidebar and top bar use frosted glass effect (`backdrop-blur-md`, translucent backgrounds, rounded cards) |
 | **Google OAuth** | OAuth sign-in via Supabase Auth (not in original PRD tech stack) |
 | **Chore points gamification** | Points per chore template, weekly stats leaderboard |
 
@@ -106,14 +107,14 @@ Expense tracking (US-04, Issues #5 and #6) was descoped during Sprint 1 due to w
 ├── invite/[code]/                   Deep link → redirect to join flow
 ├── auth/callback/                   Supabase OAuth callback handler
 └── (dashboard)/dashboard/
-    ├── /                            Home — greeting, quick stats, recent chores
+    ├── /                            Redirects to /dashboard/household (home page disabled)
     ├── chores/                      Chore board (pending, completed, overdue)
     │   ├── new/                     Create chore template form
     │   └── templates/               Template management (edit, delete)
     ├── calendar/                    Weekly calendar with events
     ├── feed/                        Announcements feed with reactions
     ├── votes/                       Proposals feed with voting
-    ├── household/                   Members list + admin chore manager
+    ├── household/                   Members list + admin chore manager (default landing page)
     ├── my/                          My assigned chores (personal view)
     └── profile/                     User profile card with sign-out
 ```
@@ -121,11 +122,13 @@ Expense tracking (US-04, Issues #5 and #6) was descoped during Sprint 1 due to w
 ### 4.2 Component Tree
 
 ```
-Dashboard Shell
-├── Sidebar Navigation (10 nav items)
-├── Top Bar (NestSync logo + mobile menu + invite code copy)
+Dashboard Shell (glassmorphism sidebar + top bar)
+├── Sidebar
+│   ├── NestSync logo
+│   ├── Household name (Patrick Hand font, links to /dashboard/household)
+│   └── Navigation (4 items: My Page, Calendar, Feed, Votes)
+├── Top Bar (glassmorphism, mobile hamburger menu + invite code copy)
 └── Page Content
-    ├── DashboardHome (stats cards, recent chores)
     ├── ChoreBoard (grouped by status: pending/completed)
     │   ├── ChoreCard (title, assignee, points, due date)
     │   └── CompleteChoreButton (server action mutation)
@@ -143,7 +146,7 @@ Dashboard Shell
     │   ├── CreateProposalForm (3 proposal types)
     │   └── VoteProgressBar (yes/no/remaining + quorum line)
     ├── HouseholdDashboard → MemberCard
-    │   └── AdminChoreManager (reassign/delete templates)
+    │   └── AdminChoreManager (reassign/delete with error feedback)
     ├── MyPageDashboard (personal chore list)
     └── ProfileCard (avatar, role badge, sign-out)
 ```
@@ -154,7 +157,7 @@ Dashboard Shell
 
 ### 5.1 Tables
 
-13 tables + 1 database VIEW, created across 3 migrations.
+13 tables + 1 database VIEW, created across 4 migrations.
 
 | Table | Columns | Purpose | Has App Code? |
 |---|---|---|---|
@@ -180,6 +183,7 @@ Dashboard Shell
 | `20260309000000_init.sql` | Creates all 13 tables, ENUMs, indexes, FK constraints, check constraints, calendar_events VIEW, auth triggers, all RLS policies, Realtime publication |
 | `20260310000000_fix_rls_recursion.sql` | Fixes infinite recursion in `household_members` RLS by introducing `get_my_household_ids()` and `get_my_admin_household_ids()` helper functions |
 | `20260311000000_add_schedule_days.sql` | Adds `schedule_days SMALLINT[]` column to `chore_templates` for day-of-week scheduling |
+| `20260312000000_reload_schema_cache.sql` | Sends `NOTIFY pgrst, 'reload schema'` to refresh PostgREST's column cache after the `schedule_days` migration |
 
 ### 5.3 RLS Summary
 
@@ -201,7 +205,7 @@ NestSync uses **Next.js Server Actions** instead of REST endpoints. All mutation
 
 | Action | Input | Returns | Side Effects |
 |---|---|---|---|
-| `login` | `FormData(email, password)` | `ActionResult` | Supabase sign-in → redirect to `/dashboard` |
+| `login` | `FormData(email, password)` | `ActionResult` | Supabase sign-in → `getPostAuthRedirect()` → `/dashboard/household` or `/onboarding` |
 | `signup` | `FormData(email, password, displayName, ?inviteCode)` | `ActionResult` | Supabase sign-up → auto-join if invite code → redirect |
 | `forgotPassword` | `FormData(email)` | `ActionResult` | Sends password reset email |
 | `resetPassword` | `FormData(password, confirmPassword)` | `ActionResult` | Updates password → redirect to `/login` |
@@ -213,12 +217,12 @@ NestSync uses **Next.js Server Actions** instead of REST endpoints. All mutation
 
 | Action | Input | Returns | Side Effects |
 |---|---|---|---|
-| `createChoreTemplate` | `FormData(title, ?description, points, recurrence, assignedTo, ?scheduleDays[])` | `ActionResult` | Creates template + generates instances → redirect to `/dashboard/chores` |
-| `createChoreQuick` | `FormData(title, points, assignedTo, date, householdId)` | `ActionResult` | Creates one-time template + single instance for a specific date |
+| `createChoreTemplate` | `FormData(title, ?description, points, recurrence, ?assignedTo, ?scheduleDays[], ?dueDate)` | `ActionResult` | Creates template + generates instances → redirect to `/dashboard/my` |
+| `createChoreQuick` | Same as `createChoreTemplate` | `ActionResult` | Same as `createChoreTemplate` but returns inline (no redirect) |
 | `completeChore` | `FormData(instanceId)` | `ActionResult` | Sets status=completed, completed_at, completed_by |
-| `deleteChoreTemplate` | `FormData(templateId)` | `ActionResult` | Soft-deletes template + cancels future pending instances |
-| `reassignChore` | `FormData(templateId, newMemberId)` | `ActionResult` | Updates template's `assigned_to` + reassigns future pending instances |
-| `ensureWeekInstancesAction` | `FormData(weekStart, householdId)` | `void` | Generates missing chore instances for a given week |
+| `deleteChoreTemplate` | `FormData(templateId)` | `ActionResult` | Soft-deletes template (pending instances survive per D4) |
+| `reassignChore` | `FormData(templateId, newAssignee)` | `ActionResult` | Updates template's `assigned_to` + reassigns future pending instances |
+| `ensureWeekInstancesAction` | `weekStart: string` | `void` | Generates missing chore instances for a given week |
 
 ### 6.3 Announcement Actions (`src/lib/announcements/actions.ts`)
 
@@ -287,7 +291,7 @@ NestSync uses **Next.js Server Actions** instead of REST endpoints. All mutation
 | `createChoreTemplateSchema` | `chores/validation.ts` | title (min 1, max 200), description?, points (int ≥ 1), recurrence, assignedTo (UUID), scheduleDays? (int[] 0-6) |
 | `completeChoreSchema` | `chores/validation.ts` | instanceId (UUID) |
 | `deleteChoreTemplateSchema` | `chores/validation.ts` | templateId (UUID) |
-| `reassignChoreSchema` | `chores/validation.ts` | templateId (UUID), newMemberId (UUID) |
+| `reassignChoreSchema` | `chores/validation.ts` | templateId (UUID), newAssignee (UUID) |
 | `createAnnouncementSchema` | `announcements/validation.ts` | content (min 1, max 2000) |
 | `togglePinSchema` | `announcements/validation.ts` | announcementId (UUID) |
 | `deleteAnnouncementSchema` | `announcements/validation.ts` | announcementId (UUID) |
@@ -318,7 +322,7 @@ NestSync uses **Next.js Server Actions** instead of REST endpoints. All mutation
 | Integration tests (server actions) | 3 | ~70 | Vitest + mock Supabase |
 | Component tests (React rendering) | ~20 | ~200 | Vitest + React Testing Library |
 | E2E tests (browser) | 2 | 8 | Playwright |
-| **Total** | **~34** | **~621** | — |
+| **Total** | **~50** | **~622** | — |
 
 ### Coverage Thresholds (Enforced by CI)
 
@@ -405,13 +409,25 @@ Not implemented. Database schema exists but no application code.
 
 ### Pre-Deploy (Current Sprint)
 
-- [ ] Merge PR #45 (chore scheduling enhancements)
-- [ ] Debug pass (fix any broken flows)
+- [x] Merge PR #45 (chore scheduling enhancements) — merged
+- [x] Merge PR #47 (sidebar & top bar redesign) — merged
+- [x] Merge PR #49 (chore creation bug fixes + home page redirect) — merged
+- [ ] Debug pass (fix remaining broken flows)
 - [ ] Improvement pass (UX polish)
 - [ ] Complete documentation
 - [ ] Deploy to Vercel + Supabase hosted
 
-### Known Discrepancies (Debug Branch)
+### Bugs Fixed (PR #49)
+
+| Bug | Root Cause | Fix |
+|---|---|---|
+| **Chore creation fails on My Page** | `schedule_days` column missing from PostgREST schema cache after migration | Omit `schedule_days` from insert/select; use parsed form data for instance generation |
+| **Calendar quick-add shows "Invalid input"** | `formData.get("description")` returns `null` for missing fields; Zod `.optional()` only accepts `undefined` | Coerce: `formData.get("description") ?? undefined` |
+| **Calendar assignee sometimes missing** | Conditional hidden input for non-admin could be absent | Always render `<select>` (sr-only for non-admin) + server-side fallback to `membership.memberId` |
+| **Admin delete chore confirmation hard to click** | Tiny checkmark icon as confirm button | Replaced with "Yes" text button in red |
+| **Delete errors silently swallowed** | Client `handleDelete` didn't display error feedback | Added `actionError` state + error banner in `AdminChoreManager` |
+
+### Known Discrepancies
 
 | Issue | Severity | Detail |
 |---|---|---|
@@ -419,11 +435,13 @@ Not implemented. Database schema exists but no application code.
 | **`users` RLS pattern inconsistency** | Low | `users_select_household_members` still uses the old recursive subquery pattern (not updated to use `get_my_household_ids()`). Works because it queries the fixed `household_members` table, but is stylistically inconsistent. |
 | **No `admin_history` write RLS policies** | Low | Only SELECT policy exists. Writes happen via service role (server actions), so this is correct behavior but undocumented. |
 | **No DELETE RLS policies on most tables** | Info | By design — app uses soft deletes (`deleted_at`/`left_at`). Only `announcement_reactions` has a DELETE policy. |
+| **Proposal resolution is on-demand only** | Low | Proposals resolve when a user loads `/dashboard/votes` or when all votes are cast (early resolution). No background cron or auto-announcement to feed. |
 
 ### Post-Deploy (v1.1+)
 
 - [ ] Invite preview screen (show household name + member count before joining)
 - [ ] In-app notification system
+- [ ] Auto-announce proposal outcomes in the feed
 - [ ] Expense tracking (schema ready, needs UI + actions)
 - [ ] Cron job for daily chore instance generation (currently triggered on page load)
 - [ ] Supabase Realtime subscriptions for live updates

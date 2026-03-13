@@ -31,3 +31,4 @@ npm-debug.log*
 # Supabase
 supabase/.temp/
 supabase/.branches/
+.vercel
