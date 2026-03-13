@@ -94,7 +94,10 @@ export async function forgotPassword(
 
   const supabase = await createClient();
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "http://127.0.0.1:3000";
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://127.0.0.1:3000");
 
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
