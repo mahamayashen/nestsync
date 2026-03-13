@@ -45,6 +45,7 @@ function createChain(result: { data: unknown; error: unknown }) {
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.insert = vi.fn().mockReturnValue(chain);
   chain.update = vi.fn().mockReturnValue(chain);
+  chain.single = vi.fn().mockResolvedValue(result);
   chain.maybeSingle = vi.fn().mockResolvedValue(result);
   Object.defineProperty(chain, "then", {
     value: (resolve: (val: unknown) => void) =>
@@ -318,26 +319,31 @@ describe("getCompletionStreak", () => {
 // ---- getOnTimeRate ----
 
 describe("getOnTimeRate", () => {
-  it("returns zeros on error", async () => {
+  // Helper: mock both the households (timezone) and chore_instances queries
+  function setupOnTimeRateMock(
+    instanceData: unknown[] | null,
+    instanceError: unknown | null = null,
+    timezone = "UTC"
+  ) {
     mockSupa = {
-      from: vi.fn().mockReturnValue(
-        createChain({ data: null, error: { message: "err" } })
-      ),
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === "households") {
+          return createChain({ data: { timezone }, error: null });
+        }
+        return createChain({ data: instanceData, error: instanceError });
+      }),
     };
     mockCreateClient.mockResolvedValue(mockSupa);
+  }
 
+  it("returns zeros on error", async () => {
+    setupOnTimeRateMock(null, { message: "err" });
     const result = await getOnTimeRate("h-001");
     expect(result).toEqual({ onTime: 0, total: 0, rate: 0 });
   });
 
   it("returns zeros when no completed chores", async () => {
-    mockSupa = {
-      from: vi.fn().mockReturnValue(
-        createChain({ data: [], error: null })
-      ),
-    };
-    mockCreateClient.mockResolvedValue(mockSupa);
-
+    setupOnTimeRateMock([]);
     const result = await getOnTimeRate("h-001");
     expect(result).toEqual({ onTime: 0, total: 0, rate: 0 });
   });
@@ -348,12 +354,7 @@ describe("getOnTimeRate", () => {
       { due_date: "2026-03-09", completed_at: "2026-03-09T10:00:00Z" }, // on time
       { due_date: "2026-03-08", completed_at: "2026-03-10T10:00:00Z" }, // late
     ];
-    mockSupa = {
-      from: vi.fn().mockReturnValue(
-        createChain({ data, error: null })
-      ),
-    };
-    mockCreateClient.mockResolvedValue(mockSupa);
+    setupOnTimeRateMock(data);
 
     const result = await getOnTimeRate("h-001");
     expect(result.total).toBe(3);
@@ -361,16 +362,23 @@ describe("getOnTimeRate", () => {
     expect(result.rate).toBe(67); // Math.round(2/3 * 100)
   });
 
+  it("counts as on-time using household timezone", async () => {
+    // 11 PM ET on March 10 = March 11 in UTC, but should be on-time for March 10
+    const data = [
+      { due_date: "2026-03-10", completed_at: "2026-03-11T03:30:00Z" },
+    ];
+    setupOnTimeRateMock(data, null, "America/New_York");
+
+    const result = await getOnTimeRate("h-001");
+    expect(result.onTime).toBe(1);
+    expect(result.rate).toBe(100);
+  });
+
   it("handles completed_at being null", async () => {
     const data = [
       { due_date: "2026-03-10", completed_at: null },
     ];
-    mockSupa = {
-      from: vi.fn().mockReturnValue(
-        createChain({ data, error: null })
-      ),
-    };
-    mockCreateClient.mockResolvedValue(mockSupa);
+    setupOnTimeRateMock(data);
 
     const result = await getOnTimeRate("h-001");
     expect(result.total).toBe(1);
@@ -378,13 +386,7 @@ describe("getOnTimeRate", () => {
   });
 
   it("accepts optional memberId filter", async () => {
-    mockSupa = {
-      from: vi.fn().mockReturnValue(
-        createChain({ data: [], error: null })
-      ),
-    };
-    mockCreateClient.mockResolvedValue(mockSupa);
-
+    setupOnTimeRateMock([]);
     const result = await getOnTimeRate("h-001", "m-001");
     expect(result).toEqual({ onTime: 0, total: 0, rate: 0 });
   });
