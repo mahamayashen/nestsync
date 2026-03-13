@@ -1,20 +1,19 @@
 # NestSync
 
-A shared household management app for roommates and families — chores, shared expenses, announcements, and democratic governance.
+A shared household management app for roommates and families — chores, announcements, and democratic governance.
 
 **Live:** [nestsync-delta.vercel.app](https://nestsync-delta.vercel.app)
 
 ## Overview
 
-NestSync helps households stay organized and fair. Assign and track chores with a points system, make group decisions through democratic voting, share announcements, and split expenses — all in one place. Built with a modern stack and designed for real-time collaboration.
+NestSync helps households stay organized and fair. Assign and track chores with a points system, make group decisions through democratic voting and share announcements — all in one place. Built with a modern stack and designed for real-time collaboration.
 
 ## Features
 
-- **Chores** — Create, assign, and track chores with a points-based fairness system. Supports one-time, daily, weekly, monthly, and custom day-of-week recurrence. Calendar view shows the full weekly schedule.
+- **Chores** — Create, assign, and track chores with a points-based fairness system. Supports one-time, daily, weekly, and custom day-of-week recurrence. Calendar view shows the full weekly schedule.
 - **Voting & Proposals** — Democratic decision-making for electing admins, removing members, or any custom household motion. Configurable quorum and voting deadlines.
 - **Announcements Feed** — Post updates, pin important announcements (admin), and react with emoji.
 - **Household Management** — Create or join households via invite codes. Admin and member roles with configurable permissions.
-- **Expense Tracking** — Log shared expenses, split equally or by exact amounts, and track settlements.
 - **Authentication** — Email/password and Google OAuth sign-in via Supabase Auth.
 
 ## Tech Stack
