@@ -64,9 +64,6 @@ async function insertChoreTemplate(
       : null;
 
   // 1. Insert the template
-  // Note: schedule_days is omitted from the PostgREST insert because the
-  // column was added after the initial schema and may not be in the schema
-  // cache. We use the parsed form data directly for instance generation.
   const { data: template, error: templateError } = await supabase
     .from("chore_templates")
     .insert({
@@ -75,6 +72,7 @@ async function insertChoreTemplate(
       description: parsed.data.description || null,
       points: parsed.data.points,
       recurrence: parsed.data.recurrence,
+      schedule_days: scheduleDays,
       assigned_to: parsed.data.assignedTo,
       created_by: membership.memberId,
     })
