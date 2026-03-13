@@ -13,40 +13,40 @@ Based on ColorHunt Palette 2 (`#D97D55`, `#F4E9D7`, `#B8C4A9`, `#6FA4AF`) with P
 
 ### Core Colors
 
-| Name       | Hex       | Role                                          |
-| ---------- | --------- | --------------------------------------------- |
-| Teal       | `#6FA4AF` | Primary — buttons, links, active states       |
-| Cream      | `#F4E9D7` | Background — page backgrounds                 |
+| Name       | Hex       | Role                                           |
+| ---------- | --------- | ---------------------------------------------  |
+| Teal       | `#6FA4AF` | Primary — buttons, links, active states        |
+| Cream      | `#F4E9D7` | Background — page backgrounds                  |
 | Sage       | `#B8C4A9` | Secondary surface — cards, subtle backgrounds  |
 | Terracotta | `#D97D55` | Warm highlight — accents, emphasis             |
 | Gold       | `#E9B63B` | Secondary accent — points, stars, gamification |
 
 ### Semantic Tokens
 
-| Token                | Value       | Usage                                |
-| -------------------- | ----------- | ------------------------------------ |
-| `--color-primary`    | `#6FA4AF`   | Primary actions, buttons, focus      |
+| Token                | Value       | Usage                                 |
+| -------------------- | ----------- | ------------------------------------  |
+| `--color-primary`    | `#6FA4AF`   | Primary actions, buttons, focus       |
 | `--color-primary-hover` | `#5B8F9A` | Hover state for primary elements     |
 | `--color-primary-light` | `#6FA4AF1A` | Primary tinted backgrounds (10%)   |
-| `--color-primary-medium` | `#6FA4AF33` | Primary medium backgrounds (20%) |
-| `--color-accent`     | `#E9B63B`   | Points, stars, trophies              |
-| `--color-accent-light` | `#E9B63B1A` | Accent tinted backgrounds (10%)   |
-| `--color-highlight`  | `#D97D55`   | Warm emphasis, terracotta accents    |
+| `--color-primary-medium` | `#6FA4AF33` | Primary medium backgrounds (20%)  |
+| `--color-accent`     | `#E9B63B`   | Points, stars, trophies               |
+| `--color-accent-light` | `#E9B63B1A` | Accent tinted backgrounds (10%)     |
+| `--color-highlight`  | `#D97D55`   | Warm emphasis, terracotta accents     |
 | `--color-highlight-light` | `#D97D551A` | Highlight tinted backgrounds     |
-| `--color-background` | `#F4E9D7`   | Page background                      |
-| `--color-surface`    | `#FFFFFF`   | Cards, modals, sidebar               |
-| `--color-surface-secondary` | `#B8C4A926` | Subtle card-like areas (15%)  |
-| `--color-text-primary` | `#1E293B` | Headings, primary body text          |
-| `--color-text-secondary` | `#64748B` | Secondary labels, descriptions     |
-| `--color-text-muted` | `#94A3B8`   | Timestamps, hints, placeholders      |
-| `--color-text-on-primary` | `#FFFFFF` | Text on primary-colored buttons   |
-| `--color-border`     | `#D1D5DB`   | Standard borders                     |
-| `--color-border-light` | `#E5E7EB` | Subtle borders, dividers             |
-| `--color-error`      | `#DC2626`   | Error states, overdue items          |
-| `--color-error-light` | `#FEF2F2`  | Error background                     |
-| `--color-error-text` | `#B91C1C`   | Error message text                   |
-| `--color-success`    | `#16A34A`   | Success states, completion           |
-| `--color-success-light` | `#F0FDF4` | Success background                  |
+| `--color-background` | `#F4E9D7`   | Page background                       |
+| `--color-surface`    | `#FFFFFF`   | Cards, modals, sidebar                |
+| `--color-surface-secondary` | `#B8C4A926` | Subtle card-like areas (15%)   |
+| `--color-text-primary` | `#1E293B` | Headings, primary body text           |
+| `--color-text-secondary` | `#64748B` | Secondary labels, descriptions      |
+| `--color-text-muted` | `#94A3B8`   | Timestamps, hints, placeholders       |
+| `--color-text-on-primary` | `#FFFFFF` | Text on primary-colored buttons    |
+| `--color-border`     | `#D1D5DB`   | Standard borders                      |
+| `--color-border-light` | `#E5E7EB` | Subtle borders, dividers              |
+| `--color-error`      | `#DC2626`   | Error states, overdue items           |
+| `--color-error-light` | `#FEF2F2`  | Error background                      |
+| `--color-error-text` | `#B91C1C`   | Error message text                    |
+| `--color-success`    | `#16A34A`   | Success states, completion            |
+| `--color-success-light` | `#F0FDF4` | Success background                   |
 | `--color-success-text` | `#15803D`  | Success message text                 |
 
 ### Status Colors
@@ -152,13 +152,13 @@ Maintain minimum clear space equal to the cap-height of the "N" on all sides.
 | Copy            | `Copy`            | Clipboard copy             |
 | Delete          | `Trash`           | Remove items               |
 | Repeat/Recur    | `ArrowsClockwise` | Recurring chores           |
-| Sign out        | `SignOut`          | Logout                     |
+| Sign out        | `SignOut`         | Logout                     |
 | Menu            | `List`            | Mobile hamburger           |
 | Close           | `X`               | Close/dismiss              |
 | Arrow right     | `ArrowRight`      | Navigation, CTAs           |
 | Money           | `CurrencyDollar`  | Expenses (future)          |
 | Announce        | `Megaphone`       | Announcements              |
-| Vote            | `Scales`          | Democratic governance       |
+| Vote            | `Scales`          | Democratic governance      |
 
 ---
 
