@@ -64,9 +64,6 @@ async function insertChoreTemplate(
       : null;
 
   // 1. Insert the template
-  // Note: schedule_days is omitted from the PostgREST insert because the
-  // column was added after the initial schema and may not be in the schema
-  // cache. We use the parsed form data directly for instance generation.
   const { data: template, error: templateError } = await supabase
     .from("chore_templates")
     .insert({
@@ -75,6 +72,7 @@ async function insertChoreTemplate(
       description: parsed.data.description || null,
       points: parsed.data.points,
       recurrence: parsed.data.recurrence,
+      schedule_days: scheduleDays,
       assigned_to: parsed.data.assignedTo,
       created_by: membership.memberId,
     })
@@ -189,6 +187,7 @@ export async function deleteChoreTemplate(
   });
 
   if (!parsed.success) {
+    console.error("Delete chore validation failed:", parsed.error.issues);
     return { error: parsed.error.issues[0].message };
   }
 
@@ -197,19 +196,23 @@ export async function deleteChoreTemplate(
 
   const supabase = await createClient();
 
-  // Check D3 permission: members_can_edit_own_chores
-  const { data: household } = await supabase
-    .from("households")
-    .select("members_can_edit_own_chores")
-    .eq("id", membership.householdId)
-    .single();
-
-  if (!household) return { error: "Household not found" };
-
+  // Non-admin: check D3 permission (members_can_edit_own_chores) + ownership
   if (membership.role !== "admin") {
+    const { data: household, error: householdError } = await supabase
+      .from("households")
+      .select("members_can_edit_own_chores")
+      .eq("id", membership.householdId)
+      .single();
+
+    if (householdError || !household) {
+      console.error("Household lookup failed:", householdError);
+      return { error: "Household not found" };
+    }
+
     if (!household.members_can_edit_own_chores) {
       return { error: "Only the admin can delete chore templates" };
     }
+
     const { data: template } = await supabase
       .from("chore_templates")
       .select("created_by")
@@ -222,7 +225,7 @@ export async function deleteChoreTemplate(
     }
   }
 
-  // Soft delete (D4: pending instances survive)
+  // Soft delete the template
   const { error } = await supabase
     .from("chore_templates")
     .update({ deleted_at: new Date().toISOString() })
@@ -230,8 +233,21 @@ export async function deleteChoreTemplate(
     .eq("household_id", membership.householdId);
 
   if (error) {
-    return { error: "Failed to delete template. Please try again." };
+    console.error("Chore template soft-delete error:", error);
+    return {
+      error: error.message
+        ? `Delete failed: ${error.message}`
+        : "Failed to delete template. Please try again.",
+    };
   }
+
+  // Cancel all pending instances for the deleted template
+  await supabase
+    .from("chore_instances")
+    .update({ status: "cancelled" })
+    .eq("template_id", parsed.data.templateId)
+    .eq("household_id", membership.householdId)
+    .eq("status", "pending");
 
   return { success: true };
 }
