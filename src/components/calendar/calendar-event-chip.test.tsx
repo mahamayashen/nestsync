@@ -53,22 +53,22 @@ describe("CalendarEventChip", () => {
     expect(screen.queryByText("Alice")).not.toBeInTheDocument();
   });
 
-  it("applies opacity for completed events", () => {
+  it("applies sage style for completed events", () => {
     const { container } = render(
       <CalendarEventChip
         event={{ ...baseEvent, event_status: "completed" }}
       />
     );
     const chip = container.firstChild as HTMLElement;
-    expect(chip.className).toContain("opacity-50");
+    expect(chip.className).toContain("bg-sage-medium");
   });
 
-  it("does not apply opacity for pending events", () => {
+  it("does not apply sage style for pending events", () => {
     const { container } = render(
       <CalendarEventChip event={baseEvent} />
     );
     const chip = container.firstChild as HTMLElement;
-    expect(chip.className).not.toContain("opacity-50");
+    expect(chip.className).not.toContain("bg-sage-medium");
   });
 
   it("includes title attribute with event title", () => {
