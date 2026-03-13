@@ -1,15 +1,28 @@
 # NestSync — API Reference
 
-> **Last Updated:** March 12, 2026
-> **Architecture:** Next.js Server Actions (no REST endpoints)
-> **Auth:** Supabase Auth (JWT sessions managed by middleware)
+> **Last Updated:** March 13, 2026
+> **Auth:** Supabase Auth (cookie-based sessions)
 > **Validation:** Zod schemas on all inputs
 
-NestSync does not expose a REST API. All mutations use Next.js Server Actions — TypeScript functions that run on the server and are called directly from React components. All reads use server-side query functions that fetch data via the Supabase client.
+NestSync provides both a **public REST API** (JSON over HTTP) and internal **Server Actions** (used by the React frontend).
 
 ---
 
 ## Table of Contents
+
+### REST API (Public)
+
+- [Authentication](#rest-authentication)
+- [GET /api/household](#get-apihousehold)
+- [GET /api/members](#get-apimembers)
+- [GET /api/chores](#get-apichores)
+- [GET /api/chores/instances](#get-apichoresinstances)
+- [GET /api/announcements](#get-apiannouncements)
+- [GET /api/proposals](#get-apiproposals)
+- [GET /api/calendar](#get-apicalendar)
+- [GET /api/stats](#get-apistats)
+
+### Server Actions (Internal)
 
 1. [Authentication](#1-authentication)
 2. [Chore Management](#2-chore-management)
@@ -21,6 +34,272 @@ NestSync does not expose a REST API. All mutations use Next.js Server Actions �
 8. [Type Definitions](#8-type-definitions)
 9. [Error Handling](#9-error-handling)
 10. [Authorization Model](#10-authorization-model)
+
+---
+
+# REST API
+
+All REST endpoints require authentication via Supabase session cookies. Unauthenticated requests receive a `401` JSON response.
+
+**Base URL:** `https://nestsync-delta.vercel.app/`
+
+**Response format:** All responses use `{ data: ... }` for success and `{ error: "message" }` for errors.
+
+---
+
+## REST Authentication
+
+The REST API uses the same cookie-based authentication as the web app. To authenticate:
+
+1. Log in through the web UI — this sets Supabase session cookies
+2. Include cookies in API requests (same-origin requests work automatically)
+
+For programmatic access, obtain a Supabase access token and pass it as a cookie or use the Supabase client SDK directly.
+
+**Unauthorized response (all endpoints):**
+```json
+{ "error": "Unauthorized" }
+```
+Status: `401`
+
+---
+
+## GET /api/household
+
+Returns the current user's household details.
+
+**Response `200`:**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "name": "The Nest",
+    "invite_code": "ABC12345",
+    "timezone": "America/New_York",
+    "max_members": 10,
+    "min_vote_participation": 0.5,
+    "default_vote_duration_hours": 48,
+    "members_can_edit_own_chores": false,
+    "created_at": "2026-03-01T00:00:00Z"
+  },
+  "membership": { "role": "admin" }
+}
+```
+
+---
+
+## GET /api/members
+
+Returns all active members of the household.
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "id": "member-uuid",
+      "user_id": "user-uuid",
+      "role": "admin",
+      "joined_at": "2026-03-01T00:00:00Z",
+      "display_name": "Alice",
+      "avatar_url": "https://..."
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/chores
+
+Returns all active chore templates.
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "id": "template-uuid",
+      "title": "Take out trash",
+      "description": "Weekly trash duty",
+      "points": 5,
+      "recurrence": "weekly",
+      "schedule_days": [1, 4],
+      "assigned_to": { "id": "member-uuid", "display_name": "Bob" },
+      "created_by": { "id": "member-uuid", "display_name": "Alice" }
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/chores/instances
+
+Returns chore instances with optional filtering.
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `status` | `pending` \| `completed` \| `cancelled` | Filter by status |
+| `dateFrom` | `YYYY-MM-DD` | Start date (inclusive) |
+| `dateTo` | `YYYY-MM-DD` | End date (inclusive) |
+| `assignedTo` | `uuid` | Filter by assigned member |
+
+**Example:** `GET /api/chores/instances?status=pending&dateFrom=2026-03-10&dateTo=2026-03-16`
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "id": "instance-uuid",
+      "title": "Take out trash",
+      "points": 5,
+      "due_date": "2026-03-10",
+      "status": "pending",
+      "assigned_to": { "id": "member-uuid", "display_name": "Bob" },
+      "completed_by": null
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/announcements
+
+Returns all announcements (pinned first, then newest).
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "id": "ann-uuid",
+      "content": "House meeting this Friday!",
+      "is_pinned": true,
+      "created_at": "2026-03-10T12:00:00Z",
+      "updated_at": "2026-03-10T12:00:00Z",
+      "author": {
+        "id": "member-uuid",
+        "role": "admin",
+        "display_name": "Alice",
+        "avatar_url": null
+      },
+      "reactions": [
+        { "id": "reaction-uuid", "emoji": "thumbsup", "member_id": "member-uuid" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/proposals
+
+Returns all proposals with votes.
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "id": "proposal-uuid",
+      "type": "custom",
+      "title": "Buy a new vacuum",
+      "description": "The old one is broken",
+      "status": "active",
+      "eligible_voter_count": 4,
+      "min_participation_threshold": 0.5,
+      "voting_deadline": "2026-03-15T00:00:00Z",
+      "resolved_at": null,
+      "created_at": "2026-03-13T00:00:00Z",
+      "target_member": null,
+      "creator": { "id": "member-uuid", "display_name": "Alice" },
+      "votes": [
+        { "id": "vote-uuid", "member_id": "member-uuid", "vote": "yes", "voted_at": "2026-03-13T01:00:00Z" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## GET /api/calendar
+
+Returns calendar events (chores, expenses, proposals) for a date range.
+
+**Query parameters (required):**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `dateFrom` | `YYYY-MM-DD` | Start date (inclusive) |
+| `dateTo` | `YYYY-MM-DD` | End date (inclusive) |
+
+**Example:** `GET /api/calendar?dateFrom=2026-03-10&dateTo=2026-03-16`
+
+**Response `200`:**
+```json
+{
+  "data": [
+    {
+      "event_id": "uuid",
+      "household_id": "uuid",
+      "event_type": "chore",
+      "event_title": "Take out trash",
+      "event_date": "2026-03-10",
+      "event_status": "pending",
+      "related_member_id": "member-uuid",
+      "metadata_int": 5,
+      "metadata_decimal": null,
+      "member_display_name": "Bob"
+    }
+  ]
+}
+```
+
+**Error `400`:**
+```json
+{ "error": "dateFrom and dateTo query parameters are required" }
+```
+
+---
+
+## GET /api/stats
+
+Returns household statistics: weekly leaderboard, streak, on-time rate, week comparison, and today's progress.
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `memberId` | `uuid` | Optional — filters streak, on-time rate, and week comparison to a specific member |
+
+**Response `200`:**
+```json
+{
+  "data": {
+    "weeklyLeaderboard": [
+      { "memberId": "uuid", "displayName": "Alice", "points": 25, "count": 5 }
+    ],
+    "streak": 3,
+    "onTimeRate": { "onTime": 8, "total": 10, "rate": 80 },
+    "weekComparison": { "thisWeek": 25, "lastWeek": 20, "diff": 5 },
+    "todayProgress": { "completed": 3, "total": 5 }
+  }
+}
+```
+
+---
+
+# Server Actions (Internal)
+
+> The following documents the internal Server Actions used by the React frontend.
+> These are TypeScript functions invoked via `useFormState` / form actions, not HTTP endpoints.
 
 ---
 
