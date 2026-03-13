@@ -293,9 +293,10 @@ describe("deleteChoreTemplate", () => {
   it("admin skips household permission query", async () => {
     const fd = buildFormData({ templateId: TEST_UUID });
     await deleteChoreTemplate(fd);
-    // Admin should only call from() once (for the update)
-    expect(mockSupa.from).toHaveBeenCalledTimes(1);
+    // Admin calls from() twice: soft-delete template + cancel pending instances
+    expect(mockSupa.from).toHaveBeenCalledTimes(2);
     expect(mockSupa.from).toHaveBeenCalledWith("chore_templates");
+    expect(mockSupa.from).toHaveBeenCalledWith("chore_instances");
   });
 
   it("returns success when member deletes own template", async () => {

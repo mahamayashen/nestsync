@@ -225,7 +225,7 @@ export async function deleteChoreTemplate(
     }
   }
 
-  // Soft delete (D4: pending instances survive)
+  // Soft delete the template
   const { error } = await supabase
     .from("chore_templates")
     .update({ deleted_at: new Date().toISOString() })
@@ -240,6 +240,14 @@ export async function deleteChoreTemplate(
         : "Failed to delete template. Please try again.",
     };
   }
+
+  // Cancel all pending instances for the deleted template
+  await supabase
+    .from("chore_instances")
+    .update({ status: "cancelled" })
+    .eq("template_id", parsed.data.templateId)
+    .eq("household_id", membership.householdId)
+    .eq("status", "pending");
 
   return { success: true };
 }
