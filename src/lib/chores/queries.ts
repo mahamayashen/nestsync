@@ -252,6 +252,15 @@ export async function getOnTimeRate(
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  // Fetch household timezone for accurate date comparison
+  const { data: household } = await supabase
+    .from("households")
+    .select("timezone")
+    .eq("id", householdId)
+    .single();
+
+  const tz = household?.timezone ?? "America/New_York";
+
   let query = supabase
     .from("chore_instances")
     .select("due_date, completed_at")
@@ -271,8 +280,9 @@ export async function getOnTimeRate(
   let onTime = 0;
   for (const row of data) {
     if (row.completed_at) {
-      // Compare just the date portion
-      const completedDate = row.completed_at.slice(0, 10);
+      // Convert UTC completed_at to the household's local date
+      const completedDate = new Date(row.completed_at)
+        .toLocaleDateString("sv-SE", { timeZone: tz });
       if (completedDate <= row.due_date) {
         onTime++;
       }

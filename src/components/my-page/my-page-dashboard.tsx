@@ -146,9 +146,9 @@ export function MyPageDashboard({
         </div>
 
         {/* Weekly Trend */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-accent/15 p-5 shadow-sm">
+        <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-sage-solid/15 p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent-light rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-sage-light rounded-lg flex items-center justify-center">
               {trendIcon}
             </div>
             <div>

@@ -37,7 +37,7 @@ export function CreateAnnouncementForm({
   const showCharCount = content.length > MAX_LENGTH - 200;
 
   return (
-    <div className="bg-surface rounded-xl border border-border-light p-4">
+    <div className="bg-surface rounded-xl border border-primary/25 border-l-[3px] border-l-primary p-4">
       {error && (
         <div
           role="alert"
@@ -52,7 +52,7 @@ export function CreateAnnouncementForm({
         placeholder="Share an update with your household..."
         rows={3}
         maxLength={MAX_LENGTH}
-        className="w-full resize-none rounded-lg border border-border-light bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+        className="w-full resize-none rounded-lg border border-border-light bg-primary-light px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
       />
       <div className="flex items-center justify-between mt-2">
         <span
