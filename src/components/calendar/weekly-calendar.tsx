@@ -178,7 +178,7 @@ export function WeeklyCalendar({
               <div
                 key={dateStr}
                 className={`flex flex-col ${
-                  isToday ? "bg-primary-light/30" : "bg-surface"
+                  isToday ? "bg-surface" : "bg-surface"
                 }`}
               >
                 {/* Day header — clickable for quick-add */}

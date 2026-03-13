@@ -25,8 +25,10 @@ export function CalendarEventChip({ event }: CalendarEventChipProps) {
 
   return (
     <div
-      className={`text-xs px-2 py-1.5 rounded-lg border truncate ${style} ${
-        isCompleted ? "opacity-50" : ""
+      className={`text-xs px-2 py-1.5 rounded-lg border truncate ${
+        isCompleted
+          ? "bg-sage-medium text-[#5C7A4A] border-sage-solid/40"
+          : style
       }`}
       title={`${event.event_title}${event.member_display_name ? ` — ${event.member_display_name}` : ""}`}
     >

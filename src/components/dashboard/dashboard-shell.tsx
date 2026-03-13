@@ -55,7 +55,7 @@ export function DashboardShell({
               Household
             </p>
             <Link
-              href="/dashboard/household"
+              href="/dashboard"
               onClick={() => setSidebarOpen(false)}
               className="block truncate mt-0.5 hover:opacity-80 transition-opacity"
               style={{
