@@ -1,15 +1,21 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database.types";
 
 /**
  * Determines where to redirect a user after authentication.
  * - Has active household membership → "/dashboard"
  * - No membership → "/onboarding"
  * - Not authenticated → "/login"
+ *
+ * Accepts an optional Supabase client to reuse an existing session
+ * (critical for OAuth callback where a new client can't see freshly-set cookies).
  */
 export async function getPostAuthRedirect(
-  overrideRedirect?: string | null
+  overrideRedirect?: string | null,
+  existingClient?: SupabaseClient<Database>
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = existingClient ?? (await createClient());
 
   const {
     data: { user },

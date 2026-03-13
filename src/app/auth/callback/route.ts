@@ -17,8 +17,10 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}${next}`);
       }
 
-      // Otherwise, determine where to go based on user state
-      const dest = await getPostAuthRedirect();
+      // Pass the SAME supabase client that already has the session.
+      // Creating a new client here would fail because the freshly-set
+      // auth cookies aren't visible to a second client in the same request.
+      const dest = await getPostAuthRedirect(null, supabase);
       return NextResponse.redirect(`${origin}${dest}`);
     }
   }
