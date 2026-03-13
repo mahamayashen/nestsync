@@ -4,9 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { renderWithProviders } from "@/test/helpers";
 import { AdminChoreManager } from "./admin-chore-manager";
 
+const mockDeleteChoreTemplate = vi.fn().mockResolvedValue({ success: true });
+
 vi.mock("@/lib/chores/actions", () => ({
   reassignChore: vi.fn().mockResolvedValue({ success: true }),
-  deleteChoreTemplate: vi.fn().mockResolvedValue({ success: true }),
+  deleteChoreTemplate: (...args: unknown[]) => mockDeleteChoreTemplate(...args),
 }));
 
 const members = [
@@ -220,5 +222,22 @@ describe("AdminChoreManager", () => {
       />
     );
     expect(screen.getByText(/Unassigned/)).toBeInTheDocument();
+  });
+
+  it("shows error message when delete fails", async () => {
+    mockDeleteChoreTemplate.mockResolvedValueOnce({
+      error: "Delete failed: permission denied",
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<AdminChoreManager {...defaultProps} />);
+
+    // Click delete icon, then confirm with "Yes"
+    const deleteButtons = screen.getAllByTitle("Delete");
+    await user.click(deleteButtons[0]);
+    await user.click(screen.getByRole("button", { name: "Yes" }));
+
+    expect(
+      await screen.findByText("Delete failed: permission denied")
+    ).toBeInTheDocument();
   });
 });

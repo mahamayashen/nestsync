@@ -187,6 +187,7 @@ export async function deleteChoreTemplate(
   });
 
   if (!parsed.success) {
+    console.error("Delete chore validation failed:", parsed.error.issues);
     return { error: parsed.error.issues[0].message };
   }
 
@@ -195,19 +196,23 @@ export async function deleteChoreTemplate(
 
   const supabase = await createClient();
 
-  // Check D3 permission: members_can_edit_own_chores
-  const { data: household } = await supabase
-    .from("households")
-    .select("members_can_edit_own_chores")
-    .eq("id", membership.householdId)
-    .single();
-
-  if (!household) return { error: "Household not found" };
-
+  // Non-admin: check D3 permission (members_can_edit_own_chores) + ownership
   if (membership.role !== "admin") {
+    const { data: household, error: householdError } = await supabase
+      .from("households")
+      .select("members_can_edit_own_chores")
+      .eq("id", membership.householdId)
+      .single();
+
+    if (householdError || !household) {
+      console.error("Household lookup failed:", householdError);
+      return { error: "Household not found" };
+    }
+
     if (!household.members_can_edit_own_chores) {
       return { error: "Only the admin can delete chore templates" };
     }
+
     const { data: template } = await supabase
       .from("chore_templates")
       .select("created_by")
@@ -228,7 +233,12 @@ export async function deleteChoreTemplate(
     .eq("household_id", membership.householdId);
 
   if (error) {
-    return { error: "Failed to delete template. Please try again." };
+    console.error("Chore template soft-delete error:", error);
+    return {
+      error: error.message
+        ? `Delete failed: ${error.message}`
+        : "Failed to delete template. Please try again.",
+    };
   }
 
   return { success: true };

@@ -278,23 +278,24 @@ describe("deleteChoreTemplate", () => {
       mockMembership({ role: "admin" })
     );
 
-    let callCount = 0;
-    mockSupa.from.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        return createChain({
-          data: { members_can_edit_own_chores: true },
-          error: null,
-        });
-      }
-      return createChain({ data: null, error: null });
-    });
+    // Admin path: only the soft-delete update call
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
   });
 
   it("returns success when admin deletes", async () => {
     const fd = buildFormData({ templateId: TEST_UUID });
     const result = await deleteChoreTemplate(fd);
     expect(result).toEqual({ success: true });
+  });
+
+  it("admin skips household permission query", async () => {
+    const fd = buildFormData({ templateId: TEST_UUID });
+    await deleteChoreTemplate(fd);
+    // Admin should only call from() once (for the update)
+    expect(mockSupa.from).toHaveBeenCalledTimes(1);
+    expect(mockSupa.from).toHaveBeenCalledWith("chore_templates");
   });
 
   it("returns success when member deletes own template", async () => {
@@ -347,7 +348,10 @@ describe("deleteChoreTemplate", () => {
     );
   });
 
-  it("returns error when household not found", async () => {
+  it("returns error when household not found (non-admin)", async () => {
+    mockGetCurrentMembership.mockResolvedValue(
+      mockMembership({ role: "member" })
+    );
     mockSupa.from.mockReturnValue(
       createChain({ data: null, error: null })
     );
@@ -371,23 +375,15 @@ describe("deleteChoreTemplate", () => {
     expect(result).toEqual({ error: "Not authenticated" });
   });
 
-  it("returns error on database failure", async () => {
-    let callCount = 0;
-    mockSupa.from.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) {
-        return createChain({
-          data: { members_can_edit_own_chores: true },
-          error: null,
-        });
-      }
-      return createChain({ data: null, error: { message: "DB error" } });
-    });
+  it("returns error on database failure (admin)", async () => {
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { message: "DB error" } })
+    );
 
     const fd = buildFormData({ templateId: TEST_UUID });
     const result = await deleteChoreTemplate(fd);
     expect(result).toEqual(
-      expect.objectContaining({ error: expect.stringContaining("Failed") })
+      expect.objectContaining({ error: expect.stringContaining("Delete failed") })
     );
   });
 

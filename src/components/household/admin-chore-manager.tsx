@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Shield, ArrowsLeftRight, Trash, Check } from "@phosphor-icons/react";
+import { Shield, ArrowsLeftRight, Trash } from "@phosphor-icons/react";
 import { reassignChore, deleteChoreTemplate } from "@/lib/chores/actions";
 import type { ChoreTemplateRow } from "@/lib/chores/queries";
 import type { HouseholdMemberWithUser } from "@/lib/household/members";
@@ -47,6 +47,7 @@ export function AdminChoreManager({
   const [filterMember, setFilterMember] = useState<string>("all");
   const [reassigning, setReassigning] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const memberMap: Record<string, string> = {};
@@ -64,6 +65,7 @@ export function AdminChoreManager({
     fd.set("templateId", templateId);
     fd.set("newAssignee", newAssignee);
 
+    setActionError(null);
     startTransition(async () => {
       const result = await reassignChore(fd);
       if (result.success) {
@@ -83,6 +85,9 @@ export function AdminChoreManager({
           )
         );
         setReassigning(null);
+      } else if (result.error) {
+        setActionError(result.error);
+        setReassigning(null);
       }
     });
   };
@@ -91,10 +96,14 @@ export function AdminChoreManager({
     const fd = new FormData();
     fd.set("templateId", templateId);
 
+    setActionError(null);
     startTransition(async () => {
       const result = await deleteChoreTemplate(fd);
       if (result.success) {
         setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+        setConfirmDelete(null);
+      } else if (result.error) {
+        setActionError(result.error);
         setConfirmDelete(null);
       }
     });
@@ -126,6 +135,12 @@ export function AdminChoreManager({
           ))}
         </select>
       </div>
+
+      {actionError && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">
+          {actionError}
+        </p>
+      )}
 
       <div className="space-y-1">
         {filtered.map((template) => (
@@ -169,20 +184,20 @@ export function AdminChoreManager({
                   ))}
                 </select>
               ) : confirmDelete === template.id ? (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <span className="text-xs text-text-muted">Delete?</span>
                   <button
                     type="button"
                     onClick={() => handleDelete(template.id)}
                     disabled={isPending}
-                    className="p-1 rounded text-red-600 hover:bg-red-50 transition-colors"
+                    className="px-2 py-0.5 rounded text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Check size={14} weight="bold" />
+                    Yes
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(null)}
-                    className="text-xs text-text-muted hover:text-text-secondary"
+                    className="px-2 py-0.5 rounded text-xs text-text-muted hover:text-text-secondary hover:bg-surface-secondary transition-colors"
                   >
                     Cancel
                   </button>
