@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { signOut } from "@/lib/auth/actions";
 import {
@@ -8,9 +9,12 @@ import {
   House,
   Crown,
   CalendarBlank,
+  PencilSimple,
 } from "@phosphor-icons/react";
+import { ProfileEditForm } from "./profile-edit-form";
 
 interface ProfileCardProps {
+  userId: string;
   displayName: string;
   email: string;
   avatarUrl: string | null;
@@ -37,6 +41,7 @@ function getInitials(name: string): string {
 }
 
 export function ProfileCard({
+  userId,
   displayName,
   email,
   avatarUrl,
@@ -44,6 +49,21 @@ export function ProfileCard({
   role,
   memberSince,
 }: ProfileCardProps) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <ProfileEditForm
+        displayName={displayName}
+        email={email}
+        avatarUrl={avatarUrl}
+        userId={userId}
+        role={role}
+        onClose={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
     <div className="relative">
       {/* Gradient background blob */}
@@ -57,6 +77,15 @@ export function ProfileCard({
       <div className="relative backdrop-blur-xl bg-white/50 border border-white/30 rounded-2xl shadow-xl overflow-hidden">
         {/* Decorative top gradient bar */}
         <div className="h-24 bg-gradient-to-r from-[#B8C4A9]/60 via-[#6FA4AF]/40 to-[#D97D55]/30" />
+
+        {/* Edit button */}
+        <button
+          onClick={() => setEditing(true)}
+          className="absolute top-28 right-4 p-2 rounded-lg hover:bg-white/40 transition-colors"
+          title="Edit profile"
+        >
+          <PencilSimple size={18} className="text-text-secondary" />
+        </button>
 
         {/* Avatar — overlapping the gradient bar */}
         <div className="flex justify-center -mt-14">

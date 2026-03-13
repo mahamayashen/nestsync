@@ -4,9 +4,15 @@ import { ProfileCard } from "./profile-card";
 
 vi.mock("@/lib/auth/actions", () => ({
   signOut: vi.fn(),
+  updateProfile: vi.fn(),
+  updateEmail: vi.fn(),
+  changePassword: vi.fn(),
+  uploadAvatar: vi.fn(),
+  deleteAccount: vi.fn(),
 }));
 
 const defaultProps = {
+  userId: "user-123",
   displayName: "Alice Smith",
   email: "alice@example.com",
   avatarUrl: null,
