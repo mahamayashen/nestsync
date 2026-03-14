@@ -25,6 +25,7 @@ export default async function ProfilePage() {
   return (
     <div className="max-w-lg mx-auto py-8">
       <ProfileCard
+        userId={membership.userId}
         displayName={user?.display_name ?? "User"}
         email={user?.email ?? ""}
         avatarUrl={user?.avatar_url ?? null}

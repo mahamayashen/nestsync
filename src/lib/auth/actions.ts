@@ -11,7 +11,11 @@ import {
   resetPasswordSchema,
   createHouseholdSchema,
   joinHouseholdSchema,
+  updateProfileSchema,
+  updateEmailSchema,
+  changePasswordSchema,
 } from "./validation";
+import { getCurrentMembership } from "@/lib/household/queries";
 
 // ---- Action Result Type ----
 type ActionResult = { error?: string; success?: boolean };
@@ -286,6 +290,260 @@ async function joinHouseholdByCode(code: string): Promise<ActionResult> {
   }
 
   return {};
+}
+
+// ---- UPDATE PROFILE (display name) ----
+export async function updateProfile(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = updateProfileSchema.safeParse({
+    displayName: formData.get("displayName"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ display_name: parsed.data.displayName })
+    .eq("id", user.id);
+
+  if (error) {
+    return { error: "Failed to update name. Please try again." };
+  }
+
+  return { success: true };
+}
+
+// ---- UPDATE EMAIL ----
+export async function updateEmail(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = updateEmailSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({
+    email: parsed.data.email,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+// ---- CHANGE PASSWORD ----
+export async function changePassword(
+  formData: FormData
+): Promise<ActionResult> {
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+
+  // Verify current password by re-authenticating
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: parsed.data.currentPassword,
+  });
+
+  if (signInError) {
+    return { error: "Current password is incorrect" };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.newPassword,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+// ---- UPLOAD AVATAR ----
+export async function uploadAvatar(
+  formData: FormData
+): Promise<ActionResult> {
+  const file = formData.get("avatar") as File | null;
+
+  if (!file || file.size === 0) {
+    return { error: "No file selected" };
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    return { error: "File must be under 2MB" };
+  }
+
+  if (!file.type.startsWith("image/")) {
+    return { error: "File must be an image" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${user.id}/avatar.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true });
+
+  if (uploadError) {
+    return { error: "Failed to upload avatar. Please try again." };
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("avatars").getPublicUrl(path);
+
+  // Add cache-bust param to force re-fetch
+  const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", user.id);
+
+  if (updateError) {
+    return { error: "Failed to update profile. Please try again." };
+  }
+
+  return { success: true };
+}
+
+// ---- CHECK DELETE ELIGIBILITY ----
+export async function checkDeleteEligibility(): Promise<{
+  canDelete: boolean;
+  reason?: string;
+  isAdmin: boolean;
+  isSoleMember: boolean;
+  memberCount: number;
+}> {
+  const membership = await getCurrentMembership();
+
+  if (!membership) {
+    return { canDelete: true, isAdmin: false, isSoleMember: true, memberCount: 0 };
+  }
+
+  const admin = createAdminClient();
+
+  // Count active members in the household
+  const { count } = await admin
+    .from("household_members")
+    .select("id", { count: "exact", head: true })
+    .eq("household_id", membership.householdId)
+    .is("left_at", null);
+
+  const memberCount = count ?? 1;
+  const isAdmin = membership.role === "admin";
+  const isSoleMember = memberCount === 1;
+
+  // Admin with other members cannot delete
+  if (isAdmin && !isSoleMember) {
+    return {
+      canDelete: false,
+      reason:
+        "As the admin, you must remove all other members or transfer admin role before deleting your account.",
+      isAdmin,
+      isSoleMember,
+      memberCount,
+    };
+  }
+
+  return { canDelete: true, isAdmin, isSoleMember, memberCount };
+}
+
+// ---- DELETE ACCOUNT ----
+export async function deleteAccount(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const membership = await getCurrentMembership();
+
+  if (membership) {
+    const eligibility = await checkDeleteEligibility();
+    if (!eligibility.canDelete) {
+      return { error: eligibility.reason };
+    }
+
+    // If admin and sole member — soft-delete the household
+    if (eligibility.isAdmin && eligibility.isSoleMember) {
+      await admin
+        .from("households")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", membership.householdId);
+    }
+
+    // Leave the household
+    await admin
+      .from("household_members")
+      .update({ left_at: new Date().toISOString() })
+      .eq("id", membership.memberId);
+  }
+
+  // Anonymize user data (FK RESTRICT prevents hard delete)
+  await admin
+    .from("users")
+    .update({
+      display_name: "Deleted User",
+      email: `deleted-${user.id}@nestsync.local`,
+      avatar_url: null,
+    })
+    .eq("id", user.id);
+
+  // Delete auth user
+  await admin.auth.admin.deleteUser(user.id);
+
+  // Sign out and redirect
+  await supabase.auth.signOut();
+  redirect("/login");
 }
 
 // ---- SIGN OUT ----

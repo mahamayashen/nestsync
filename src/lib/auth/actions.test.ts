@@ -3,12 +3,13 @@ import { buildFormData } from "@/test/helpers";
 
 // ---- Hoisted mocks ----
 
-const { mockRedirect, mockCreateClient, mockCreateAdminClient, mockGetPostAuthRedirect } =
+const { mockRedirect, mockCreateClient, mockCreateAdminClient, mockGetPostAuthRedirect, mockGetCurrentMembership } =
   vi.hoisted(() => ({
     mockRedirect: vi.fn(),
     mockCreateClient: vi.fn(),
     mockCreateAdminClient: vi.fn(),
     mockGetPostAuthRedirect: vi.fn(),
+    mockGetCurrentMembership: vi.fn(),
   }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -30,6 +31,10 @@ vi.mock("@/lib/auth/redirect", () => ({
   getPostAuthRedirect: mockGetPostAuthRedirect,
 }));
 
+vi.mock("@/lib/household/queries", () => ({
+  getCurrentMembership: mockGetCurrentMembership,
+}));
+
 // Import after mocks
 import {
   login,
@@ -39,6 +44,12 @@ import {
   createHousehold,
   joinHousehold,
   signOut,
+  updateProfile,
+  updateEmail,
+  changePassword,
+  uploadAvatar,
+  checkDeleteEligibility,
+  deleteAccount,
 } from "./actions";
 
 // ---- Chain helper ----
@@ -100,6 +111,13 @@ beforeEach(() => {
   mockCreateAdminClient.mockReturnValue(mockAdmin);
 
   mockGetPostAuthRedirect.mockResolvedValue("/dashboard");
+
+  mockGetCurrentMembership.mockResolvedValue({
+    memberId: "member-001",
+    householdId: "household-001",
+    userId: "user-001",
+    role: "member",
+  });
 });
 
 // ---- login ----
@@ -668,5 +686,382 @@ describe("joinHousehold - full household", () => {
     expect(result).toEqual(
       expect.objectContaining({ error: expect.stringContaining("Failed") })
     );
+  });
+});
+
+// ---- updateProfile ----
+
+describe("updateProfile", () => {
+  it("returns success when name is updated", async () => {
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
+    const fd = buildFormData({ displayName: "New Name" });
+    const result = await updateProfile(fd);
+    expect(result).toEqual({ success: true });
+    expect(mockSupa.from).toHaveBeenCalledWith("users");
+  });
+
+  it("returns error for invalid display name", async () => {
+    const fd = buildFormData({ displayName: "A" });
+    const result = await updateProfile(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockSupa.auth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+    const fd = buildFormData({ displayName: "New Name" });
+    const result = await updateProfile(fd);
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+
+  it("returns error when update fails", async () => {
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { message: "Update failed" } })
+    );
+    const fd = buildFormData({ displayName: "New Name" });
+    const result = await updateProfile(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("Failed") })
+    );
+  });
+});
+
+// ---- updateEmail ----
+
+describe("updateEmail", () => {
+  it("returns success when email is updated", async () => {
+    const fd = buildFormData({ email: "new@example.com" });
+    const result = await updateEmail(fd);
+    expect(result).toEqual({ success: true });
+    expect(mockSupa.auth.updateUser).toHaveBeenCalledWith({
+      email: "new@example.com",
+    });
+  });
+
+  it("returns error for invalid email", async () => {
+    const fd = buildFormData({ email: "not-an-email" });
+    const result = await updateEmail(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+    expect(mockSupa.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("returns error when auth update fails", async () => {
+    mockSupa.auth.updateUser.mockResolvedValue({
+      error: { message: "Email already in use" },
+    });
+    const fd = buildFormData({ email: "taken@example.com" });
+    const result = await updateEmail(fd);
+    expect(result).toEqual({ error: "Email already in use" });
+  });
+});
+
+// ---- changePassword ----
+
+describe("changePassword", () => {
+  it("returns success when password is changed", async () => {
+    const fd = buildFormData({
+      currentPassword: "oldpass123",
+      newPassword: "newpass123",
+      confirmPassword: "newpass123",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual({ success: true });
+    expect(mockSupa.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: "test@example.com",
+      password: "oldpass123",
+    });
+    expect(mockSupa.auth.updateUser).toHaveBeenCalledWith({
+      password: "newpass123",
+    });
+  });
+
+  it("returns error for validation failure", async () => {
+    const fd = buildFormData({
+      currentPassword: "",
+      newPassword: "newpass123",
+      confirmPassword: "newpass123",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns error for mismatched passwords", async () => {
+    const fd = buildFormData({
+      currentPassword: "oldpass123",
+      newPassword: "newpass123",
+      confirmPassword: "different",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockSupa.auth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+    const fd = buildFormData({
+      currentPassword: "oldpass123",
+      newPassword: "newpass123",
+      confirmPassword: "newpass123",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+
+  it("returns error when current password is incorrect", async () => {
+    mockSupa.auth.signInWithPassword.mockResolvedValue({
+      error: { message: "Invalid login credentials" },
+    });
+    const fd = buildFormData({
+      currentPassword: "wrongpass",
+      newPassword: "newpass123",
+      confirmPassword: "newpass123",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual({ error: "Current password is incorrect" });
+  });
+
+  it("returns error when updateUser fails", async () => {
+    mockSupa.auth.updateUser.mockResolvedValue({
+      error: { message: "Password too weak" },
+    });
+    const fd = buildFormData({
+      currentPassword: "oldpass123",
+      newPassword: "newpass123",
+      confirmPassword: "newpass123",
+    });
+    const result = await changePassword(fd);
+    expect(result).toEqual({ error: "Password too weak" });
+  });
+});
+
+// ---- uploadAvatar ----
+
+describe("uploadAvatar", () => {
+  let mockStorage: Record<string, unknown>;
+
+  beforeEach(() => {
+    mockStorage = {
+      from: vi.fn().mockReturnValue({
+        upload: vi.fn().mockResolvedValue({ error: null }),
+        getPublicUrl: vi.fn().mockReturnValue({
+          data: { publicUrl: "https://example.com/avatar.jpg" },
+        }),
+      }),
+    };
+    (mockSupa as unknown as Record<string, unknown>).storage = mockStorage;
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: null })
+    );
+  });
+
+  it("returns success when avatar is uploaded", async () => {
+    const file = new File(["test"], "photo.jpg", { type: "image/jpeg" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual({ success: true });
+  });
+
+  it("returns error for no file", async () => {
+    const fd = new FormData();
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual({ error: "No file selected" });
+  });
+
+  it("returns error for file over 2MB", async () => {
+    const bigContent = new Uint8Array(2 * 1024 * 1024 + 1);
+    const file = new File([bigContent], "big.jpg", { type: "image/jpeg" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual({ error: "File must be under 2MB" });
+  });
+
+  it("returns error for non-image file", async () => {
+    const file = new File(["test"], "doc.pdf", { type: "application/pdf" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual({ error: "File must be an image" });
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockSupa.auth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+    const file = new File(["test"], "photo.jpg", { type: "image/jpeg" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+
+  it("returns error when upload fails", async () => {
+    mockStorage.from = vi.fn().mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ error: { message: "Upload error" } }),
+      getPublicUrl: vi.fn().mockReturnValue({
+        data: { publicUrl: "https://example.com/avatar.jpg" },
+      }),
+    });
+    const file = new File(["test"], "photo.jpg", { type: "image/jpeg" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("Failed to upload") })
+    );
+  });
+
+  it("returns error when profile update fails", async () => {
+    mockSupa.from.mockReturnValue(
+      createChain({ data: null, error: { message: "Update error" } })
+    );
+    const file = new File(["test"], "photo.jpg", { type: "image/jpeg" });
+    const fd = new FormData();
+    fd.set("avatar", file);
+    const result = await uploadAvatar(fd);
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.stringContaining("Failed to update") })
+    );
+  });
+});
+
+// ---- checkDeleteEligibility ----
+
+describe("checkDeleteEligibility", () => {
+  it("returns canDelete=true for regular member", async () => {
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 3 })
+    );
+    const result = await checkDeleteEligibility();
+    expect(result.canDelete).toBe(true);
+    expect(result.isAdmin).toBe(false);
+  });
+
+  it("returns canDelete=false for admin with other members", async () => {
+    mockGetCurrentMembership.mockResolvedValue({
+      memberId: "member-001",
+      householdId: "household-001",
+      userId: "user-001",
+      role: "admin",
+    });
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 3 })
+    );
+    const result = await checkDeleteEligibility();
+    expect(result.canDelete).toBe(false);
+    expect(result.isAdmin).toBe(true);
+    expect(result.reason).toBeDefined();
+  });
+
+  it("returns canDelete=true for sole admin", async () => {
+    mockGetCurrentMembership.mockResolvedValue({
+      memberId: "member-001",
+      householdId: "household-001",
+      userId: "user-001",
+      role: "admin",
+    });
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 1 })
+    );
+    const result = await checkDeleteEligibility();
+    expect(result.canDelete).toBe(true);
+    expect(result.isAdmin).toBe(true);
+    expect(result.isSoleMember).toBe(true);
+  });
+
+  it("returns canDelete=true when no membership", async () => {
+    mockGetCurrentMembership.mockResolvedValue(null);
+    const result = await checkDeleteEligibility();
+    expect(result.canDelete).toBe(true);
+    expect(result.memberCount).toBe(0);
+  });
+});
+
+// ---- deleteAccount ----
+
+describe("deleteAccount", () => {
+  beforeEach(() => {
+    // Default: regular member, household has 3 members
+    mockGetCurrentMembership.mockResolvedValue({
+      memberId: "member-001",
+      householdId: "household-001",
+      userId: "user-001",
+      role: "member",
+    });
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 3 })
+    );
+    (mockAdmin as unknown as Record<string, unknown>).auth = {
+      admin: {
+        deleteUser: vi.fn().mockResolvedValue({ error: null }),
+      },
+    };
+  });
+
+  it("deletes account for regular member and redirects", async () => {
+    await expect(deleteAccount()).rejects.toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockSupa.auth.getUser.mockResolvedValue({
+      data: { user: null },
+      error: null,
+    });
+    const result = await deleteAccount();
+    expect(result).toEqual({ error: "Not authenticated" });
+  });
+
+  it("returns error when admin with other members", async () => {
+    mockGetCurrentMembership.mockResolvedValue({
+      memberId: "member-001",
+      householdId: "household-001",
+      userId: "user-001",
+      role: "admin",
+    });
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 3 })
+    );
+    const result = await deleteAccount();
+    expect(result).toEqual(
+      expect.objectContaining({ error: expect.any(String) })
+    );
+  });
+
+  it("soft-deletes household when sole admin deletes", async () => {
+    mockGetCurrentMembership.mockResolvedValue({
+      memberId: "member-001",
+      householdId: "household-001",
+      userId: "user-001",
+      role: "admin",
+    });
+    mockAdmin.from.mockReturnValue(
+      createChain({ data: null, error: null, count: 1 })
+    );
+    await expect(deleteAccount()).rejects.toThrow("NEXT_REDIRECT");
+    // Verify households update was called (soft-delete)
+    expect(mockAdmin.from).toHaveBeenCalledWith("households");
+  });
+
+  it("handles account with no membership", async () => {
+    mockGetCurrentMembership.mockResolvedValue(null);
+    await expect(deleteAccount()).rejects.toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
   });
 });

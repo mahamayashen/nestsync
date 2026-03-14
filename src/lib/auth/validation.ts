@@ -48,6 +48,32 @@ export const joinHouseholdSchema = z.object({
     .trim(),
 });
 
+// ---- Profile Schemas ----
+
+export const updateProfileSchema = z.object({
+  displayName: z
+    .string()
+    .min(2, "Display name must be at least 2 characters")
+    .max(100, "Display name must be at most 100 characters"),
+});
+
+export const updateEmailSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(6, "New password must be at least 6 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
 // ---- Type Exports ----
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -56,3 +82,6 @@ export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type CreateHouseholdInput = z.infer<typeof createHouseholdSchema>;
 export type JoinHouseholdInput = z.infer<typeof joinHouseholdSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdateEmailInput = z.infer<typeof updateEmailSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

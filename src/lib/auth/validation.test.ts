@@ -6,6 +6,9 @@ import {
   resetPasswordSchema,
   createHouseholdSchema,
   joinHouseholdSchema,
+  updateProfileSchema,
+  updateEmailSchema,
+  changePasswordSchema,
 } from "./validation";
 
 // ---- loginSchema ----
@@ -233,6 +236,100 @@ describe("joinHouseholdSchema", () => {
   it("accepts code at exactly 20 characters", () => {
     const result = joinHouseholdSchema.safeParse({
       inviteCode: "A".repeat(20),
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ---- updateProfileSchema ----
+
+describe("updateProfileSchema", () => {
+  it("accepts valid display name", () => {
+    const result = updateProfileSchema.safeParse({ displayName: "Alice" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects display name shorter than 2 characters", () => {
+    const result = updateProfileSchema.safeParse({ displayName: "A" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects display name longer than 100 characters", () => {
+    const result = updateProfileSchema.safeParse({
+      displayName: "A".repeat(101),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts display name at exactly 2 characters", () => {
+    const result = updateProfileSchema.safeParse({ displayName: "AB" });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ---- updateEmailSchema ----
+
+describe("updateEmailSchema", () => {
+  it("accepts valid email", () => {
+    const result = updateEmailSchema.safeParse({ email: "new@example.com" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid email", () => {
+    const result = updateEmailSchema.safeParse({ email: "not-an-email" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects empty email", () => {
+    const result = updateEmailSchema.safeParse({ email: "" });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---- changePasswordSchema ----
+
+describe("changePasswordSchema", () => {
+  const validInput = {
+    currentPassword: "oldpass123",
+    newPassword: "newpass123",
+    confirmPassword: "newpass123",
+  };
+
+  it("accepts valid input with matching passwords", () => {
+    const result = changePasswordSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty current password", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validInput,
+      currentPassword: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects new password shorter than 6 characters", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validInput,
+      newPassword: "12345",
+      confirmPassword: "12345",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects mismatched passwords", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validInput,
+      confirmPassword: "different",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts new password at exactly 6 characters", () => {
+    const result = changePasswordSchema.safeParse({
+      ...validInput,
+      newPassword: "123456",
+      confirmPassword: "123456",
     });
     expect(result.success).toBe(true);
   });
